@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # 1. บริการระบบฐานข้อมูล MySQL
+  db:
+    image: mysql:8.0
+    container_name: hiwjai_mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword # รหัสผ่านสำหรับ root (เปลี่ยนได้ตามใจชอบ)
+      MYSQL_DATABASE: hiwjai     # สั่งให้สร้าง Database ชื่อนี้รอไว้เลย
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  # 2. บริการหน้าเว็บ phpMyAdmin เพื่อเข้าไปจัดการข้อมูล
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: hiwjai_phpmyadmin
+    restart: always
+    links:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1 # เปิดให้ล็อกอินแบบระบุ Host ได้ถ้าจำเป็น
+    ports:
+      - "8080:80" # เข้าใช้งานผ่านพอร์ต 8080
+
+volumes:
+  db_data:
