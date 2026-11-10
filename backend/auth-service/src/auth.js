@@ -1,11 +1,81 @@
+import express from 'express';
+// import bcrypt from 'bcryptjs'; 
 import jwt from 'jsonwebtoken';
+import db from './db.js';
 
-export function sign(payload) {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is not configured');
+const router = express.Router();
+
+router.post('/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  
+  if (!username || !password) {
+    return res.status(400).json({ error: 'กรุณากรอก Username และ Password' });
   }
 
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '1d'
-  });
-}
+  try {
+    // 1. ค้นหา User จากตาราง users (ไม่ว่าจะเป็น role อะไรก็ตาม)
+    const [userRows] = await db.query(
+      `SELECT * FROM users WHERE username = ?`,
+      [username]
+    );
+
+    const u = userRows[0];
+    
+    // 2. ตรวจสอบรหัสผ่าน (ใช้ 123456 สำหรับทดสอบชั่วคราว)
+    if (!u || password !== '123456') {
+      return res.status(401).json({ error: 'Username หรือรหัสผ่านไม่ถูกต้อง' });
+    }
+
+    // 3. ถ้าเป็นผู้ป่วย ให้ดึงข้อมูลจาก patient_info เพิ่ม
+    let patientData = null;
+    if (u.role === 'patient') {
+      const [patientRows] = await db.query(
+        `SELECT id AS patient_id, hn FROM patient_info WHERE user_id = ?`,
+        [u.id]
+      );
+      patientData = patientRows[0];
+    }
+
+    // 4. จัดเตรียมข้อมูลสำหรับ Token
+    const tokenPayload = { 
+      id: u.id, 
+      role: u.role 
+    };
+    
+    if (patientData) {
+      tokenPayload.patientId = patientData.patient_id;
+    }
+
+    // 5. สร้าง JWT Token
+    const token = jwt.sign(
+      tokenPayload,
+      process.env.JWT_SECRET || 'your_super_secret_key',
+      { expiresIn: '1d' }
+    );
+
+    // 6. ส่งข้อมูลกลับไปให้ Frontend
+    const responseUser = {
+      id: u.id,
+      role: u.role,
+      username: u.username,
+      name: `${u.first_name} ${u.last_name}`
+    };
+
+    if (patientData) {
+      responseUser.patientId = patientData.patient_id;
+      responseUser.hn = patientData.hn;
+    }
+
+    res.json({
+      token,
+      user: responseUser
+    });
+
+  } catch (error) {
+    // ตรงนี้สำคัญมาก: จะพิมพ์ Error จริงๆ ลงใน Terminal ของ Backend
+    console.error('Login Error details:', error); 
+    res.status(500).json({ error: 'เซิร์ฟเวอร์มีปัญหา กรุณาตรวจสอบ Terminal' });
+  }
+});
+
+export default router;

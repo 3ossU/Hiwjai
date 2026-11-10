@@ -1,4 +1,4 @@
-const BASE = '/api';
+const BASE = 'http://localhost:3001/api'; // เปลี่ยนบรรทัดนี้
 
 export const store = {
   save(token, user) {
