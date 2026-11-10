@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: db:3306
--- Generation Time: Nov 09, 2026 at 09:34 PM
+-- Generation Time: Nov 10, 2026 at 01:34 PM
 -- Server version: 8.0.46
 -- PHP Version: 8.3.30
 
@@ -40,6 +40,14 @@ CREATE TABLE `booking` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `booking`
+--
+
+INSERT INTO `booking` (`id`, `patient_id`, `doctor_id`, `created_by_nurse_id`, `appointment_date`, `start_time`, `end_time`, `status`, `note`, `created_at`) VALUES
+(1, 1, 1, 2, '2026-06-15', '2026-06-15 08:00:00', '2026-06-15 10:00:00', 'scheduled', 'ผู้ป่วยไม่สะดวกจองเอง พยาบาลจัดการให้', '2026-11-10 13:26:04'),
+(2, 2, 1, 2, '2026-06-15', '2026-06-15 13:00:00', '2026-06-15 14:00:00', 'scheduled', 'นัดตรวจสุขภาพประจำปี', '2026-11-10 13:26:04');
+
 -- --------------------------------------------------------
 
 --
@@ -56,6 +64,13 @@ CREATE TABLE `home_visits` (
   `status` enum('planned','in_progress','completed','cancelled') COLLATE utf8mb4_unicode_ci DEFAULT 'planned'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `home_visits`
+--
+
+INSERT INTO `home_visits` (`id`, `team_name`, `lead_doctor_id`, `visit_date`, `start_time`, `end_time`, `status`) VALUES
+(1, 'ทีมพยาบาลชุมชน A', 1, '2026-06-18', '2026-06-18 09:00:00', '2026-06-18 11:00:00', 'planned');
+
 -- --------------------------------------------------------
 
 --
@@ -66,6 +81,13 @@ CREATE TABLE `home_visit_patients` (
   `home_visit_id` int NOT NULL,
   `patient_id` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `home_visit_patients`
+--
+
+INSERT INTO `home_visit_patients` (`home_visit_id`, `patient_id`) VALUES
+(1, 2);
 
 -- --------------------------------------------------------
 
@@ -83,6 +105,13 @@ CREATE TABLE `nurse_leave` (
   `status` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `nurse_leave`
+--
+
+INSERT INTO `nurse_leave` (`id`, `nurse_id`, `leave_type`, `start_date`, `end_date`, `reason`, `status`, `created_at`) VALUES
+(1, 2, 'personal', '2026-07-20', '2026-07-21', 'ทำธุระส่วนตัวต่างจังหวัด', 'pending', '2026-11-10 13:26:04');
 
 -- --------------------------------------------------------
 
@@ -104,6 +133,14 @@ CREATE TABLE `patient_info` (
   `emergency_contact` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `patient_info`
+--
+
+INSERT INTO `patient_info` (`id`, `user_id`, `hn`, `gender`, `age`, `weight`, `height`, `blood_group`, `allergies`, `address`, `emergency_contact`) VALUES
+(1, 3, 'HN001', 'male', 45, 70.50, 172.00, 'O', 'แพ้ยาเพนิซิลลิน', '123 ถนนสุขุมวิท กรุงเทพฯ', '081-999-9999'),
+(2, 4, 'HN002', 'female', 30, 55.00, 160.00, 'A', 'ไม่มี', '45 ถนนพหลโยธิน กรุงเทพฯ', '089-888-8888');
+
 -- --------------------------------------------------------
 
 --
@@ -121,6 +158,16 @@ CREATE TABLE `users` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `username`, `password_hash`, `first_name`, `last_name`, `phone_number`, `role`, `created_at`, `updated_at`) VALUES
+(1, 'dr_lalina', 'hashed_password_123', 'Lalina', 'Schuett', '081-111-1111', 'doctor', '2026-11-10 13:26:04', '2026-11-10 13:26:04'),
+(2, 'nurse_fatima', 'hashed_password_123', 'Fatima', 'Dechawaleekul', '082-222-2222', 'nurse', '2026-11-10 13:26:04', '2026-11-10 13:26:04'),
+(3, 'pat_nuttanicha', 'hashed_password_123', 'Nuttanicha', 'Dungwattanawanich', '083-333-3333', 'patient', '2026-11-10 13:26:04', '2026-11-10 13:26:04'),
+(4, 'pat_tontawan', 'hashed_password_123', 'Tontawan', 'Tantivejakul', '084-444-4444', 'patient', '2026-11-10 13:26:04', '2026-11-10 13:26:04');
 
 --
 -- Indexes for dumped tables
@@ -179,31 +226,31 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `booking`
 --
 ALTER TABLE `booking`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `home_visits`
 --
 ALTER TABLE `home_visits`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `nurse_leave`
 --
 ALTER TABLE `nurse_leave`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `patient_info`
 --
 ALTER TABLE `patient_info`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Constraints for dumped tables
