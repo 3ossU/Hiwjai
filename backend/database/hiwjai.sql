@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: db:3306
--- Generation Time: Nov 10, 2026 at 08:51 PM
+-- Generation Time: Nov 10, 2026 at 11:33 PM
 -- Server version: 8.0.46
 -- PHP Version: 8.3.30
 
@@ -83,7 +83,8 @@ CREATE TABLE `home_visits` (
 --
 
 INSERT INTO `home_visits` (`id`, `team_name`, `lead_doctor_id`, `visit_date`, `start_time`, `end_time`, `status`) VALUES
-(1, 'ทีมพยาบาลชุมชน A', 1, '2026-06-18', '2026-06-18 09:00:00', '2026-06-18 11:00:00', 'planned');
+(1, 'ทีมพยาบาลชุมชน A', 1, '2026-06-18', '2026-06-18 09:00:00', '2026-06-18 11:00:00', 'cancelled'),
+(3, 'ทีมแพทย์ชุมชน B', 1, '2026-06-25', '2026-06-25 13:00:00', '2026-06-25 16:00:00', 'planned');
 
 -- --------------------------------------------------------
 
@@ -93,15 +94,17 @@ INSERT INTO `home_visits` (`id`, `team_name`, `lead_doctor_id`, `visit_date`, `s
 
 CREATE TABLE `home_visit_patients` (
   `home_visit_id` int NOT NULL,
-  `patient_id` int NOT NULL
+  `patient_id` int NOT NULL,
+  `status` enum('scheduled','visited','cancelled') COLLATE utf8mb4_unicode_ci DEFAULT 'scheduled'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `home_visit_patients`
 --
 
-INSERT INTO `home_visit_patients` (`home_visit_id`, `patient_id`) VALUES
-(1, 2);
+INSERT INTO `home_visit_patients` (`home_visit_id`, `patient_id`, `status`) VALUES
+(1, 2, 'scheduled'),
+(3, 1, 'scheduled');
 
 -- --------------------------------------------------------
 
@@ -282,7 +285,7 @@ ALTER TABLE `booking`
 -- AUTO_INCREMENT for table `home_visits`
 --
 ALTER TABLE `home_visits`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `hospital_activities`

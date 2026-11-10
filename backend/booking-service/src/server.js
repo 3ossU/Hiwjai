@@ -19,12 +19,10 @@ const pool = mysql.createPool({
 });
 
 
-
 // ดูตารางนัดหมายทั้งหมด และเลือกดูตามวันที่หรือดูตามหมอได้
 app.get('/api/bookings', async (req, res) => {
     try {
         const { date, doctor_id } = req.query; // ดึง id หมอ หรือ วันที่ จากตอนที่ request
-        
 
         // ดึงข้อมูลการนัดหมายทั้งหมด
         let query = `
