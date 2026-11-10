@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -87,6 +88,94 @@ app.get('/api/patients/:id', async (req, res) => {
     catch (err) {
         console.error('Error fetching patient detail:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+
+// add user
+app.post('/api/patients', async (req, res) => {
+    // ประกาศ pool.getConnection 
+    // คล้าย pool.query แต่เพราะเราจะสร้างที effect กับตั้ง 2 table เลยต้องใช้
+    const connection = await pool.getConnection();
+    
+    try {
+        // รับค่าจากหน้าบ้านที่เรากรอก
+        const {
+            username, password, first_name, last_name, phone_number,
+            hn, gender, age, weight, height, blood_group, allergies, address, emergency_contact
+        } = req.body;
+
+        // เช็คข้อมูลพื้นฐานที่ห้ามเป็น null ว่าได้รับมามั้ย ถ้าไม่มีก็ไม่ทำ เชิ่ดใส่เยย
+        if (!username || !password || !first_name || !last_name || !hn) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+
+        // hash รหัสเพราะว่าเราจะสร้าง add password ด้วยตอน add user
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+
+        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
+        await connection.beginTransaction();
+
+
+        // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้ (user)
+        const userQuery = `
+            INSERT INTO users (username, password, first_name, last_name, phone_number, role)
+            VALUES (?, ?, ?, ?, ?, 'patient')
+        `;
+
+        // set ลง db จริง ๆ โดยเอาข้อมูลที่รับจากฟ้อนเอนไปแปะใน ? ด้านบน
+        const [userResult] = await connection.query(userQuery, [
+            username, 
+            hashedPassword,
+            first_name, 
+            last_name, 
+            phone_number || null
+        ]);
+
+        // ตัว id ที่พึ่งสร้างใหม่สด ๆ จากตาราง users เก็บมันไว้ในชื่อ newUserId แล้วเอา fk ที่ตาราง patient_info ด้านล่าง
+        const newUserId = userResult.insertId;
+
+        // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้ (patient_info)
+        const patientQuery = `
+            INSERT INTO patient_info (user_id, hn, gender, age, weight, height, blood_group, allergies, address, emergency_contact)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        // set ลง db จริง ๆ โดยเอาข้อมูลที่รับจากฟ้อนเอนไปแปะใน ? ด้านบน
+        await connection.query(patientQuery, [
+            newUserId,
+            hn,
+            gender || null,
+            age || null,
+            weight || null,
+            height || null,
+            blood_group || null,
+            allergies || null,
+            address || null,
+            emergency_contact || null
+        ]);
+
+        // สั่ง db ทำงาน
+        await connection.commit();
+
+        connection.release(); // ปิดการทำงาน pool.getConnection 
+
+
+        res.status(201).json({
+            success: true,
+            message: 'Patient registered successfully with hashed password',
+            userId: newUserId // ส่ง id ใหม่ที่สร้างกลับไปหน้าบ้านด้วย
+        });
+
+    } 
+    catch (err) {
+        // ถ้ามันมีอะไรสักอย่างผิดพลาด ก็คือล้างไพ่ไปเลย rollback กลับไปว่าชั้นไม่ทำจ้า
+        await connection.rollback();
+        connection.release(); // ปิดการทำงาน pool.getConnection 
+
+        console.error('Error registering patient:', err);
+        res.status(500).json({ success: false, error: 'Server Error or Duplicate Data (Username/HN already exists)' });
     }
 });
 

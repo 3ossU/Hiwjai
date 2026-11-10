@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: db:3306
--- Generation Time: Nov 10, 2026 at 01:34 PM
+-- Generation Time: Nov 10, 2026 at 07:05 PM
 -- Server version: 8.0.46
 -- PHP Version: 8.3.30
 
@@ -20,6 +20,19 @@ SET time_zone = "+00:00";
 --
 -- Database: `hiwjai`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activity_registrations`
+--
+
+CREATE TABLE `activity_registrations` (
+  `id` int NOT NULL,
+  `activity_id` int NOT NULL,
+  `patient_id` int NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -45,8 +58,9 @@ CREATE TABLE `booking` (
 --
 
 INSERT INTO `booking` (`id`, `patient_id`, `doctor_id`, `created_by_nurse_id`, `appointment_date`, `start_time`, `end_time`, `status`, `note`, `created_at`) VALUES
-(1, 1, 1, 2, '2026-06-15', '2026-06-15 08:00:00', '2026-06-15 10:00:00', 'scheduled', 'ผู้ป่วยไม่สะดวกจองเอง พยาบาลจัดการให้', '2026-11-10 13:26:04'),
-(2, 2, 1, 2, '2026-06-15', '2026-06-15 13:00:00', '2026-06-15 14:00:00', 'scheduled', 'นัดตรวจสุขภาพประจำปี', '2026-11-10 13:26:04');
+(1, 1, 1, 2, '2026-06-15', '2026-06-15 08:00:00', '2026-06-15 10:00:00', 'cancelled', 'ผู้ป่วยไม่สะดวกจองเอง พยาบาลจัดการให้', '2026-11-10 13:26:04'),
+(2, 2, 1, 2, '2026-06-15', '2026-06-15 13:00:00', '2026-06-15 14:00:00', 'scheduled', 'นัดตรวจสุขภาพประจำปี', '2026-11-10 13:26:04'),
+(3, 1, 1, 2, '2026-06-20', '2026-06-20 09:00:00', '2026-06-20 10:00:00', 'scheduled', 'พยาบาลทำรายการจองคิวตรวจติดตามอาการ', '2026-11-10 16:10:36');
 
 -- --------------------------------------------------------
 
@@ -92,10 +106,25 @@ INSERT INTO `home_visit_patients` (`home_visit_id`, `patient_id`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `nurse_leave`
+-- Table structure for table `hospital_activities`
 --
 
-CREATE TABLE `nurse_leave` (
+CREATE TABLE `hospital_activities` (
+  `id` int NOT NULL,
+  `title` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `location` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `start_at` datetime NOT NULL,
+  `capacity` int NOT NULL DEFAULT '30'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `leave`
+--
+
+CREATE TABLE `leave` (
   `id` int NOT NULL,
   `nurse_id` int NOT NULL,
   `leave_type` enum('sick','personal','maternity','annual') COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -107,10 +136,10 @@ CREATE TABLE `nurse_leave` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Dumping data for table `nurse_leave`
+-- Dumping data for table `leave`
 --
 
-INSERT INTO `nurse_leave` (`id`, `nurse_id`, `leave_type`, `start_date`, `end_date`, `reason`, `status`, `created_at`) VALUES
+INSERT INTO `leave` (`id`, `nurse_id`, `leave_type`, `start_date`, `end_date`, `reason`, `status`, `created_at`) VALUES
 (1, 2, 'personal', '2026-07-20', '2026-07-21', 'ทำธุระส่วนตัวต่างจังหวัด', 'pending', '2026-11-10 13:26:04');
 
 -- --------------------------------------------------------
@@ -174,6 +203,14 @@ INSERT INTO `users` (`id`, `username`, `password_hash`, `first_name`, `last_name
 --
 
 --
+-- Indexes for table `activity_registrations`
+--
+ALTER TABLE `activity_registrations`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_reg` (`activity_id`,`patient_id`),
+  ADD KEY `patient_id` (`patient_id`);
+
+--
 -- Indexes for table `booking`
 --
 ALTER TABLE `booking`
@@ -197,9 +234,15 @@ ALTER TABLE `home_visit_patients`
   ADD KEY `patient_id` (`patient_id`);
 
 --
--- Indexes for table `nurse_leave`
+-- Indexes for table `hospital_activities`
 --
-ALTER TABLE `nurse_leave`
+ALTER TABLE `hospital_activities`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `leave`
+--
+ALTER TABLE `leave`
   ADD PRIMARY KEY (`id`),
   ADD KEY `nurse_id` (`nurse_id`);
 
@@ -223,10 +266,16 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `activity_registrations`
+--
+ALTER TABLE `activity_registrations`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `booking`
 --
 ALTER TABLE `booking`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `home_visits`
@@ -235,9 +284,15 @@ ALTER TABLE `home_visits`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- AUTO_INCREMENT for table `nurse_leave`
+-- AUTO_INCREMENT for table `hospital_activities`
 --
-ALTER TABLE `nurse_leave`
+ALTER TABLE `hospital_activities`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `leave`
+--
+ALTER TABLE `leave`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
@@ -278,10 +333,10 @@ ALTER TABLE `home_visit_patients`
   ADD CONSTRAINT `home_visit_patients_ibfk_2` FOREIGN KEY (`patient_id`) REFERENCES `patient_info` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `nurse_leave`
+-- Constraints for table `leave`
 --
-ALTER TABLE `nurse_leave`
-  ADD CONSTRAINT `nurse_leave_ibfk_1` FOREIGN KEY (`nurse_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+ALTER TABLE `leave`
+  ADD CONSTRAINT `leave_ibfk_1` FOREIGN KEY (`nurse_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `patient_info`
