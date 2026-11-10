@@ -85,7 +85,7 @@ app.post('/api/bookings', async (req, res) => {
     try {
         const { patient_id, doctor_id, created_by_nurse_id, appointment_date, start_time, end_time, note } = req.body; // รับค่ามา
 
-        // ถ้าข้อมูลที่เราจะต้องใช้มันไม่ครบก็คือไม่ทำจ้า ควีน เชิ่ด
+        // เช็คข้อมูลพื้นฐานที่ห้ามเป็น null ว่าได้รับมามั้ย ถ้าไม่มีก็ไม่ทำ เชิ่ดใส่เยย
         if (!patient_id || !doctor_id || !appointment_date || !start_time || !end_time) {
             return res.status(400).json({ success: false, error: 'Missing required booking fields' });
         }

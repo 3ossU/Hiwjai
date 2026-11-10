@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: db:3306
--- Generation Time: Nov 10, 2026 at 07:05 PM
+-- Generation Time: Nov 10, 2026 at 08:51 PM
 -- Server version: 8.0.46
 -- PHP Version: 8.3.30
 
@@ -126,7 +126,7 @@ CREATE TABLE `hospital_activities` (
 
 CREATE TABLE `leave` (
   `id` int NOT NULL,
-  `nurse_id` int NOT NULL,
+  `user_id` int NOT NULL,
   `leave_type` enum('sick','personal','maternity','annual') COLLATE utf8mb4_unicode_ci NOT NULL,
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
@@ -139,8 +139,9 @@ CREATE TABLE `leave` (
 -- Dumping data for table `leave`
 --
 
-INSERT INTO `leave` (`id`, `nurse_id`, `leave_type`, `start_date`, `end_date`, `reason`, `status`, `created_at`) VALUES
-(1, 2, 'personal', '2026-07-20', '2026-07-21', 'ทำธุระส่วนตัวต่างจังหวัด', 'pending', '2026-11-10 13:26:04');
+INSERT INTO `leave` (`id`, `user_id`, `leave_type`, `start_date`, `end_date`, `reason`, `status`, `created_at`) VALUES
+(1, 2, 'personal', '2026-07-20', '2026-07-21', 'ทำธุระส่วนตัวต่างจังหวัด', 'pending', '2026-11-10 13:26:04'),
+(2, 2, 'annual', '2026-12-25', '2026-12-27', 'ไปเที่ยวปีใหม่', 'approved', '2026-11-10 20:50:39');
 
 -- --------------------------------------------------------
 
@@ -244,7 +245,7 @@ ALTER TABLE `hospital_activities`
 --
 ALTER TABLE `leave`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `nurse_id` (`nurse_id`);
+  ADD KEY `nurse_id` (`user_id`);
 
 --
 -- Indexes for table `patient_info`
@@ -293,7 +294,7 @@ ALTER TABLE `hospital_activities`
 -- AUTO_INCREMENT for table `leave`
 --
 ALTER TABLE `leave`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `patient_info`
@@ -336,7 +337,7 @@ ALTER TABLE `home_visit_patients`
 -- Constraints for table `leave`
 --
 ALTER TABLE `leave`
-  ADD CONSTRAINT `leave_ibfk_1` FOREIGN KEY (`nurse_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `leave_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `patient_info`
