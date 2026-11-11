@@ -10,6 +10,10 @@ const PORT = process.env.PORT || 5004;
 app.use(cors());
 app.use(express.json());
 
+// แปะไว้ก่อง จาเอาไป hash รหัสใส่ db 
+const sampleHash = bcrypt.hashSync('123456', 10);
+console.log("ค่า Hash ของรหัสผ่านใหม่ที่ถูกต้อง:", sampleHash);
+
 // เชื่อม db
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
