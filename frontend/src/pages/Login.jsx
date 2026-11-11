@@ -23,23 +23,23 @@ export default function Login({ onLogin }) {
   const [f, setF] = useState(init);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  
+
   const set = k => e => setF({ ...f, [k]: e.target.value });
 
   async function submit(e) {
-    e.preventDefault(); 
-    setBusy(true); 
+    e.preventDefault();
+    setBusy(true);
     setErr('');
-    
+
     try {
       const body = { username: f.username, password: f.password };
       const d = await api('/auth/login', { method: 'POST', body });
-      store.save(d.token, d.user); 
+      store.save(d.accessToken, d.refreshToken, d.user); // แก้จากเดิม store.save(d.token, d.user)
       onLogin(d.user);
-    } catch (error) { 
-      setErr(error.message); 
-    } finally { 
-      setBusy(false); 
+    } catch (error) {
+      setErr(error.message);
+    } finally {
+      setBusy(false);
     }
   }
 
