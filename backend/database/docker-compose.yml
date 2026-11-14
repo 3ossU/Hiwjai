@@ -10,7 +10,7 @@ services:
       MYSQL_ROOT_PASSWORD: rootpassword # รหัสผ่านสำหรับ root (เปลี่ยนได้ตามใจชอบ)
       MYSQL_DATABASE: hiwjai     # สั่งให้สร้าง Database ชื่อนี้รอไว้เลย
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
 
