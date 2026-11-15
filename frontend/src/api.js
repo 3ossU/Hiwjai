@@ -88,3 +88,46 @@ export async function api(path, { method = 'GET', body } = {}) {
 export function logout() {
   store.clear();
 }
+
+/* =====================================================================
+   ส่วนของเรา (เพิ่มต่อท้าย ไม่แก้โค้ดด้านบน)
+   ใช้เรียก service ของเรา: booking 3002 / record 3003 / activity 3004
+   ใช้ token และระบบ refresh เดิมของ auth ด้านบน
+===================================================================== */
+export const SERVICES = {
+  booking: 'http://localhost:3002',
+  record: 'http://localhost:3003',
+  activity: 'http://localhost:3004',
+};
+
+export async function svc(service, path, { method = 'GET', body } = {}) {
+  const call = () => {
+    const token = store.token();
+    return fetch(SERVICES[service] + path, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  };
+
+  let res = await call();
+
+  // access token หมดอายุ ขอใหม่ผ่าน refreshTokens() เดิม แล้วลองซ้ำ 1 ครั้ง
+  if (res.status === 401 && store.refreshToken()) {
+    try {
+      await refreshTokens();
+      res = await call();
+    } catch {
+      store.clear();
+      window.location.reload();
+      throw new Error('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    }
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || 'เกิดข้อผิดพลาด');
+  return data;
+}
