@@ -18,13 +18,13 @@ const addMinutes = (hhmm, mins) => {
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 };
 
-// users.id (ใน token) -> patient_info.id (ที่ตาราง booking ใช้)
+// users.id token patient_info.id ที่ตาราง booking ใช้
 async function getPatientInfoId(userId) {
   const [rows] = await pool.query('SELECT id FROM patient_info WHERE user_id = ?', [userId]);
   return rows.length ? rows[0].id : null;
 }
 
-// หมอลาแบบอนุมัติแล้วในวันนั้นหรือไม่ (อ่านตาราง `leave` ของเพื่อน)
+// หมอลาแบบอนุมัติแล้วในวันนั้นหรือไม่ อ่านตาราง leave ของเพื่อน
 async function doctorOnLeave(db, doctorId, date) {
   const [rows] = await db.query(
     'SELECT 1 FROM `leave` WHERE nurse_id = ? AND status = ? AND ? BETWEEN start_date AND end_date LIMIT 1',
@@ -33,7 +33,7 @@ async function doctorOnLeave(db, doctorId, date) {
   return rows.length > 0;
 }
 
-// ช่วงเวลาที่หมอไม่ว่างในวันนั้น (นัดของพยาบาลและของผู้ป่วยอยู่ตารางเดียวกัน)
+// ช่วงเวลาที่หมอไม่ว่างในวันนั้น นัดของพยาบาลและของผู้ป่วยอยู่ตารางเดียวกัน
 async function busyRanges(db, doctorId, date) {
   const [rows] = await db.query(
     `SELECT DATE_FORMAT(start_time, '%H:%i') AS s, DATE_FORMAT(end_time, '%H:%i') AS e
@@ -46,7 +46,7 @@ async function busyRanges(db, doctorId, date) {
 
 app.get('/health', (_, res) => res.json({ service: 'patient-booking', status: 'ok' }));
 
-/* ---------- รายชื่อหมอ ---------- */
+// รายชื่อหมอ 
 app.get('/api/doctors', auth, async (_, res) => {
   try {
     const [rows] = await pool.query(
@@ -60,7 +60,7 @@ app.get('/api/doctors', auth, async (_, res) => {
   }
 });
 
-/* ---------- ช่วงเวลาว่าง ---------- */
+// ช่วงเวลาว่าง พักกลางวัน 
 // GET /api/availability?doctor_id=1&date=2026-11-25
 app.get('/api/availability', auth, async (req, res) => {
   try {
@@ -83,7 +83,7 @@ app.get('/api/availability', auth, async (req, res) => {
   }
 });
 
-/* ---------- ผู้ป่วยจองเอง ---------- */
+// ผู้ป่วยจองเอง
 app.post('/api/patient-bookings', auth, role(cfg.ROLES.patient), async (req, res) => {
   const conn = await pool.getConnection();
   try {
@@ -118,7 +118,7 @@ app.post('/api/patient-bookings', auth, role(cfg.ROLES.patient), async (req, res
 
     await conn.beginTransaction();
 
-    // ล็อกแถวหมอ กันหลายคนจองเวลาเดียวกันพร้อมกัน (ตาราง booking ไม่มี unique key)
+    // ล็อกแถวหมอ กันหลายคนจองเวลาเดียวกันพร้อมกัน ตาราง booking ไม่มี unique key
     await conn.query('SELECT id FROM users WHERE id = ? FOR UPDATE', [doctor_id]);
 
     if (await doctorOnLeave(conn, doctor_id, appointment_date)) {
@@ -126,7 +126,7 @@ app.post('/api/patient-bookings', auth, role(cfg.ROLES.patient), async (req, res
       return res.status(409).json({ success: false, error: 'ผู้ให้คำปรึกษาลาในวันดังกล่าว' });
     }
 
-    // หมอไม่ว่าง (ช่วงเวลาทับกับนัดใด ๆ ที่ยังไม่ยกเลิก)
+    // หมอไม่ว่าง ช่วงเวลาทับกับนัดใด ๆ ที่ยังไม่ยกเลิก
     const [clash] = await conn.query(
       `SELECT id FROM booking
         WHERE doctor_id = ? AND status <> ? AND start_time < ? AND end_time > ?
@@ -150,7 +150,7 @@ app.post('/api/patient-bookings', auth, role(cfg.ROLES.patient), async (req, res
       return res.status(409).json({ success: false, error: 'คุณมีนัดอื่นในช่วงเวลานี้แล้ว' });
     }
 
-    // INSERT แถวใหม่ลงตาราง booking (created_by_nurse_id = NULL หมายถึงผู้ป่วยจองเอง)
+    // INSERT แถวใหม่ลงตาราง booking created_by_nurse_id = NULL หมายถึงผู้ป่วยจองเอง
     const [r] = await conn.query(
       `INSERT INTO booking
          (patient_id, doctor_id, created_by_nurse_id, appointment_date, start_time, end_time, status, note)
@@ -175,7 +175,7 @@ app.post('/api/patient-bookings', auth, role(cfg.ROLES.patient), async (req, res
   }
 });
 
-/* ---------- นัดของฉัน (ทั้งที่จองเองและที่พยาบาลจองให้) ---------- */
+// นัดของผู้ป่วย ทั้งที่จองเองและที่พยาบาลจองให้ จองให้คือกรณีที่ผู้ป่วยไม่สะดวกทำการจองเอง 
 app.get('/api/patient-bookings/my', auth, role(cfg.ROLES.patient), async (req, res) => {
   try {
     const patientInfoId = await getPatientInfoId(req.user.id);
@@ -204,7 +204,7 @@ app.get('/api/patient-bookings/my', auth, role(cfg.ROLES.patient), async (req, r
   }
 });
 
-/* ---------- ยกเลิก (เฉพาะนัดที่ผู้ป่วยจองเอง ไม่ยุ่งกับนัดที่พยาบาลจอง) ---------- */
+// ยกเลิก เฉพาะนัดที่ผู้ป่วยจองเอง ไม่ยุ่งกับนัดที่พยาบาลจอง
 app.patch('/api/patient-bookings/:id/cancel', auth, role(cfg.ROLES.patient), async (req, res) => {
   try {
     const [r] = await pool.query(

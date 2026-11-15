@@ -16,7 +16,7 @@ export default function Booking() {
   const hasToken = !!store.token()
 
   const [type, setType] = useState('clinic')
-  const [doctors, setDoctors] = useState(null) // null = กำลังโหลด, false = error
+  const [doctors, setDoctors] = useState(null) 
   const [doctor, setDoctor] = useState(null)
   const [date, setDate] = useState('')
   const [slots, setSlots] = useState([])
@@ -24,7 +24,7 @@ export default function Booking() {
   const [onLeave, setOnLeave] = useState(false)
   const [slot, setSlot] = useState('')
   const [note, setNote] = useState('')
-  const [my, setMy] = useState(null) // null = กำลังโหลด, false = error
+  const [my, setMy] = useState(null) 
   const [msg, setMsg] = useState({ ok: true, text: '' })
   const [reload, setReload] = useState(0)
 

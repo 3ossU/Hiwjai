@@ -89,11 +89,8 @@ export function logout() {
   store.clear();
 }
 
-/* =====================================================================
-   ส่วนของเรา (เพิ่มต่อท้าย ไม่แก้โค้ดด้านบน)
-   ใช้เรียก service ของเรา: booking 3002 / record 3003 / activity 3004
-   ใช้ token และระบบ refresh เดิมของ auth ด้านบน
-===================================================================== */
+// ส่วนของเรา (เพิ่มต่อท้าย ไม่แก้โค้ดด้านบน) ใช้เรียก service ของเรา: booking 3002 / record 3003 / activity 3004 ใช้ token และระบบ refresh เดิมของ auth ด้านบน
+
 export const SERVICES = {
   booking: 'http://localhost:3002',
   record: 'http://localhost:3003',

@@ -9,5 +9,5 @@ module.exports = mysql.createPool({
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
-  dateStrings: true,   // DATE/DATETIME ออกมาเป็น string ไม่โดนแปลง timezone
+  dateStrings: true,   
 });
