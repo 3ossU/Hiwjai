@@ -5,9 +5,10 @@ exports.auth = (req, res, next) => {
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
   if (!token) return res.status(401).json({ success: false, error: 'ไม่พบ token' });
   try {
-    const p = jwt.verify(token, process.env.JWT_SECRET);
+    const p = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     // รองรับชื่อ field ที่ auth-service อาจใช้ต่างกัน
     p.id = p.id ?? p.userId ?? p.user_id ?? p.sub;
+    if (!p.id) return res.status(401).json({ success: false, error: 'token ไม่ถูกต้อง' });
     req.user = p;
     next();
   } catch {
@@ -16,6 +17,6 @@ exports.auth = (req, res, next) => {
 };
 
 exports.role = (...roles) => (req, res, next) =>
-  roles.includes(req.user.role)
+  roles.includes(req.user?.role)
     ? next()
     : res.status(403).json({ success: false, error: 'ไม่มีสิทธิ์เข้าถึง' });

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom'
 import Login from './pages/Login'
 import Booking from './pages/Booking'
+import MyRecords from './pages/MyRecords'
 import { store } from './api'
 
 // nurse
@@ -52,6 +53,7 @@ function App() {
         element={guard(<div className="p-8">สวัสดี {user?.name}</div>)}
       />
       <Route path="/booking" element={guard(<Booking />)} />
+      <Route path="/myrecords" element={guard(<MyRecords />)} />
 
 
     <Route element={<NurseRoute />}>
