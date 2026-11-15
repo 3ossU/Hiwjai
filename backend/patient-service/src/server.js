@@ -31,8 +31,8 @@ app.get('/api/patients', async (req, res) => {
 
         // ดึงข้อมูลของคนไข้มา
         let query = `
-            SELECT p.id, p.hn, u.first_name, u.last_name, u.phone_number, 
-                   p.gender, p.age, p.blood_group, p.allergies, p.address, p.emergency_contact
+            SELECT p.id, p.hn, u.first_name, u.last_name, u.phone_number, u.avatar_url,
+                   u.gender, p.age, p.blood_group, p.allergies, p.address, p.emergency_contact
             FROM patient_info p
             JOIN users u ON p.user_id = u.id
         `;
@@ -68,8 +68,8 @@ app.get('/api/patients/:id', async (req, res) => {
 
         // ดึงข้อมูลคนไข้จาก id ที่เราหาเท่านั้น
         const query = `
-            SELECT p.id, p.hn, u.first_name, u.last_name, u.phone_number, u.username,
-                   p.gender, p.age, p.weight, p.height, p.blood_group, 
+            SELECT p.id, p.hn, u.first_name, u.last_name, u.phone_number, u.username, u.avatar_url,
+                   u.gender, p.age, p.weight, p.height, p.blood_group, 
                    p.allergies, p.address, p.emergency_contact
             FROM patient_info p
             JOIN users u ON p.user_id = u.id
@@ -105,7 +105,7 @@ app.post('/api/patients', async (req, res) => {
     try {
         // รับค่าจากหน้าบ้านที่เรากรอก
         const {
-            username, password, first_name, last_name, phone_number,
+            username, password, first_name, last_name, phone_number, avatar_url,
             hn, gender, age, weight, height, blood_group, allergies, address, emergency_contact
         } = req.body;
 
@@ -124,8 +124,8 @@ app.post('/api/patients', async (req, res) => {
 
         // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้ (user)
         const userQuery = `
-            INSERT INTO users (username, password, first_name, last_name, phone_number, role)
-            VALUES (?, ?, ?, ?, ?, 'patient')
+            INSERT INTO users (username, password_hash, first_name, last_name, phone_number, role, avatar_url, gender)
+            VALUES (?, ?, ?, ?, ?, 'patient', ?, ?)
         `;
 
         // set ลง db จริง ๆ โดยเอาข้อมูลที่รับจากฟ้อนเอนไปแปะใน ? ด้านบน
@@ -134,7 +134,9 @@ app.post('/api/patients', async (req, res) => {
             hashedPassword,
             first_name, 
             last_name, 
-            phone_number || null
+            phone_number || null,
+            avatar_url || null,
+            gender || null
         ]);
 
         // ตัว id ที่พึ่งสร้างใหม่สด ๆ จากตาราง users เก็บมันไว้ในชื่อ newUserId แล้วเอา fk ที่ตาราง patient_info ด้านล่าง
@@ -142,7 +144,7 @@ app.post('/api/patients', async (req, res) => {
 
         // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้ (patient_info)
         const patientQuery = `
-            INSERT INTO patient_info (user_id, hn, gender, age, weight, height, blood_group, allergies, address, emergency_contact)
+            INSERT INTO patient_info (user_id, hn, age, weight, height, blood_group, allergies, address, emergency_contact)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
@@ -150,7 +152,6 @@ app.post('/api/patients', async (req, res) => {
         await connection.query(patientQuery, [
             newUserId,
             hn,
-            gender || null,
             age || null,
             weight || null,
             height || null,
@@ -183,6 +184,75 @@ app.post('/api/patients', async (req, res) => {
     }
 });
 
+
+// แก้ไขข้อมูลคนไข้
+app.put('/api/patients/:id', async (req, res) => {
+    // ประกาศ pool.getConnection 
+    // คล้าย pool.query แต่เพราะเราจะสร้างที effect กับตั้ง 2 table เลยต้องใช้
+    const connection = await pool.getConnection();
+    
+    try {
+        const { id } = req.params; // รับ id ของคนไข้
+        
+        // รับข้อมูลคนไข้
+        const {
+            first_name, last_name, phone_number, avatar_url,
+            gender, age, weight, height, blood_group, allergies, address, emergency_contact
+        } = req.body;
+
+
+        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
+        await connection.beginTransaction();
+
+
+        // หาคนไข้ใน db ที่ตรงกับ id ที่หน้าบ้านส่งมา
+        const [patientRows] = await connection.query('SELECT user_id FROM patient_info WHERE id = ?', [id]);
+        
+        if (patientRows.length === 0) {
+            connection.release();
+            return res.status(404).json({ success: false, error: 'Patient not found' });
+        }
+
+        // เก็บ id นางไว้
+        const userId = patientRows[0].user_id;
+
+        // แก้ไขข้อมูลที่ตาราง users
+        await connection.query(`
+            UPDATE users 
+            SET first_name = ?, last_name = ?, phone_number = ?, avatar_url = ?, gender = ?
+            WHERE id = ?
+        `, [first_name, last_name, phone_number || null, avatar_url || null, gender, userId]);
+
+        // แก้ไขข้อมูลที่ตาราง patient info
+        await connection.query(`
+            UPDATE patient_info 
+            SET age = ?, weight = ?, height = ?, blood_group = ?, allergies = ?, address = ?, emergency_contact = ?
+            WHERE id = ?
+        `, [
+            age ? parseInt(age) : null,
+            weight ? parseFloat(weight) : null,
+            height ? parseFloat(height) : null,
+            blood_group || null,
+            allergies || null,
+            address || null,
+            emergency_contact || null,
+            id
+        ]);
+
+        // ยืนยันกับระบบ Transaction ว่าให้ save สิ่งที่ db ทำงานไป
+        await connection.commit(); 
+        connection.release(); // ปิดการทำงาน pool.getConnection 
+
+
+        res.json({ success: true, message: 'อัปเดตข้อมูลผู้ป่วยสำเร็จ' });
+    } 
+    catch (error) {
+        await connection.rollback();
+        connection.release(); // ปิดการทำงาน pool.getConnection 
+        console.error("Update patient error:", error);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
 
 
 app.listen(PORT, () => {

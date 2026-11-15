@@ -8,11 +8,11 @@ import { store } from './api'
 // nurse
 import Layout from './pages/nurse/Layout'
 import Dashboard from './pages/nurse/Dashboard'
-import Schedule from './pages/nurse/Schedule'
 import HomeVisit from './pages/nurse/HomeVisit'
 import Leave from './pages/nurse/Leave'
 import NurseBooking from './pages/nurse/Booking'
 import PatientInfos from './pages/nurse/PatientInfos'
+import AddUser from './pages/nurse/AddUser'
 
 const NurseRoute = () => {
   const user = store.user()
@@ -59,12 +59,12 @@ function App() {
     <Route element={<NurseRoute />}>
       <Route path='/nurse' element={<Layout user={user} />}>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path='dashboard' element={<Dashboard />} />
-        <Route path='schedule' element={<Schedule />} />
-        <Route path='homevisit' element={<HomeVisit />} />
-        <Route path='leave' element={<Leave />} />
-        <Route path='booking' element={<NurseBooking />} />
-        <Route path='patientinfos' element={<PatientInfos />} />
+        <Route path='dashboard' element={<Dashboard user={user} />} />
+        <Route path='homevisit' element={<HomeVisit user={user} />} />
+        <Route path='leave' element={<Leave user={user} />} />
+        <Route path='booking' element={<NurseBooking user={user} />} />
+        <Route path='patientinfos' element={<PatientInfos user={user}  />} />
+        <Route path='adduser' element={<AddUser user={user} />} />
       </Route>
     </Route>
 

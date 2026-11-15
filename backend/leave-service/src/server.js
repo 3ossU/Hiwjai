@@ -100,6 +100,34 @@ app.post('/api/leaves', async (req, res) => {
 });
 
 
+// ดึงประวัติการลา
+app.get('/api/leaves/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params; // รับค่า id ของคนนั้นมาก่อน
+
+        // ดึงข้อมูลการลา เรียงจากวันที่ล่าสุดขึ้นก่อน
+        const query = `
+            SELECT id, leave_type, start_date, end_date, reason, status, created_at
+            FROM \`leave\` 
+            WHERE user_id = ? 
+            ORDER BY created_at ASC
+        `;
+        
+        // สั่ง db ทำงาน
+        const [rows] = await pool.query(query, [userId]);
+
+        res.json({ 
+            success: true, 
+            data: rows // ส่งกลับฟ้อนเอน
+        });
+    } 
+    catch (err) {
+        console.error('Error fetching leave history:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+
 
 app.listen(PORT, () => {
     console.log(`Leave Service is running on port ${PORT}`);

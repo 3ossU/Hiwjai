@@ -31,7 +31,7 @@ app.get('/api/home-visits', async (req, res) => {
             SELECT hv.*, CONCAT(u.first_name, ' ', u.last_name) as lead_doctor_name 
             FROM home_visits hv
             LEFT JOIN users u ON hv.lead_doctor_id = u.id
-            ORDER BY hv.visit_date DESC, hv.start_time DESC
+            ORDER BY hv.visit_date ASC, hv.start_time ASC
         `);
 
         const result = [];
@@ -127,7 +127,7 @@ app.post('/api/home-visits', async (req, res) => {
 
     } catch (err) {
         await connection.rollback(); 
-        connection.release(); // // ปิดการทำงาน pool.getConnection 
+        connection.release(); // ปิดการทำงาน pool.getConnection 
         console.error('Error creating home visit:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
@@ -171,18 +171,38 @@ app.patch('/api/home-visits/:id/patients/:patientId/status', async (req, res) =>
 
 // ยกเลิกการนัดเยี่ยมบ้านคนไข้
 app.delete('/api/home-visits/:id', async (req, res) => {
+    // ประกาศ pool.getConnection 
+    // คล้าย pool.query แต่เพราะเราจะสร้างที effect กับตั้ง 2 table เลยต้องใช้
+    const connection = await pool.getConnection();
+
     try {
         const { id } = req.params; // ดึง id การนัดหมายมา
 
         // เอา id ที่รับมาไปหาดูว่ามีใน db มั้ย
-        const [existing] = await pool.query('SELECT * FROM home_visits WHERE id = ?', [id]);
+        const [existing] = await connection.query('SELECT * FROM home_visits WHERE id = ?', [id]);
         
         if (existing.length === 0) {
+            connection.release(); // คืน connection ก่อน return
             return res.status(404).json({ success: false, error: 'Home visit not found' });
         }
 
+        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
+        await connection.beginTransaction();
+
         // แก้สถานะการนัดหมายเป็น cancelled ก็คือยกเลิกไป
-        await pool.query('UPDATE home_visits SET status = ? WHERE id = ?', ['cancelled', id]);
+        await connection.query('UPDATE home_visits SET status = ? WHERE id = ?', ['cancelled', id]);
+
+        // แก้สถานะให้คนไข้ในนัดนี้สถานะเป็น cancelled หมด
+        await connection.query(
+            'UPDATE home_visit_patients SET status = ? WHERE home_visit_id = ? AND status = ?', 
+            ['cancelled', id, 'scheduled'] // แก้แค่คนที่สถานะเป็นรอเยี่ยม
+        );
+
+        
+        // ยืนยันกับระบบ Transaction ว่าให้ save สิ่งที่ db ทำงานไป
+        await connection.commit(); 
+        connection.release(); // ปิดการทำงาน pool.getConnection 
+
 
         res.status(200).json({
             success: true,
@@ -190,6 +210,8 @@ app.delete('/api/home-visits/:id', async (req, res) => {
         });
 
     } catch (err) {
+        await connection.rollback();
+        connection.release(); // ปิดการทำงาน pool.getConnection 
         console.error('Error cancelling home visit:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }

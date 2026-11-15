@@ -24,6 +24,7 @@ async function buildSession(u) {
     role: u.role,
     username: u.username,
     name: `${u.first_name} ${u.last_name}`,
+    avatar_url: u.avatar_url
   };
 
   if (u.role === 'patient') {
@@ -143,7 +144,7 @@ router.post('/staff/create-patient', requireAuth, requireRole('admin', 'nurse'),
   const {
     username, first_name, last_name, phone_number,
     hn, gender, age, weight, height, blood_group,
-    allergies, address, emergency_contact,
+    allergies, address, emergency_contact, avatar_url
   } = req.body || {};
 
   if (!username || !first_name || !last_name || !hn || !gender || !age || !blood_group) {
@@ -160,9 +161,9 @@ router.post('/staff/create-patient', requireAuth, requireRole('admin', 'nurse'),
     await conn.beginTransaction();
 
     const [r] = await conn.query(
-      `INSERT INTO users (username, password_hash, first_name, last_name, phone_number, role)
-       VALUES (?, ?, ?, ?, ?, 'patient')`,
-      [username, hash, first_name, last_name, phone_number || null]
+      `INSERT INTO users (username, password_hash, first_name, last_name, phone_number, role, avatar_url)
+       VALUES (?, ?, ?, ?, ?, 'patient', ?)`,
+      [username, hash, first_name, last_name, phone_number, avatar_url || null]
     );
 
     await conn.query(

@@ -26,7 +26,7 @@ app.get('/api/bookings', async (req, res) => {
 
         // ดึงข้อมูลการนัดหมายทั้งหมด
         let query = `
-            SELECT b.id, b.appointment_date, b.start_time, b.end_time, b.status, b.note,
+            SELECT b.id, b.doctor_id, b.appointment_date, b.start_time, b.end_time, b.status, b.note,
                    p.hn, u_patient.first_name AS patient_first_name, u_patient.last_name AS patient_last_name,
                    u_doctor.first_name AS doctor_first_name, u_doctor.last_name AS doctor_last_name,
                    u_nurse.first_name AS nurse_first_name, u_nurse.last_name AS nurse_last_name
@@ -146,6 +146,27 @@ app.patch('/api/bookings/:id/cancel', async (req, res) => {
 });
 
 
+// ดึงรายชื่อหมอทั้งหมดเพื่อไปใส่ในตารางนัดหมาย
+app.get('/api/doctors', async (req, res) => {
+    try {
+        const query = `
+            SELECT id, first_name, last_name , gender
+            FROM users 
+            WHERE role = 'doctor'
+            ORDER BY first_name ASC
+        `;
+        const [rows] = await pool.query(query);
+        
+        res.json({ 
+            success: true, 
+            data: rows 
+        });
+    } 
+    catch (err) {
+        console.error('Error fetching doctors:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
 
 
 app.listen(PORT, () => {
