@@ -11,14 +11,20 @@ const handleLogout = () => {
 };
 
 
-const menuItems = [
+  const menuItems = [
     { path: '/nurse/dashboard', label: 'หน้าหลัก', icon: 'bi-house-door' },
     { path: '/nurse/booking', label: 'ตารางนัดหมาย', icon: 'bi-calendar-check' },
     { path: '/nurse/homevisit', label: 'ตารางเยี่ยมบ้าน', icon: 'bi-geo-alt' },
     { path: '/nurse/leave', label: 'จัดการวันลา', icon: 'bi-file-earmark-text' },
+    
+    ...(user?.role === 'head_nurse' ? [
+      { path: '/nurse/approveleave', label: 'อนุมัติใบลา', icon: 'bi-file-earmark-check' }
+    ] : []),
+
     { path: '/nurse/patientinfos', label: 'ข้อมูลผู้ป่วย', icon: 'bi-people' },
-    { path: '/nurse/adduser', label: 'เพิ่มผู้ป่วยใหม่', icon: 'bi-person-plus' }
-];
+    { path: '/nurse/adduser', label: 'เพิ่มผู้ป่วยใหม่', icon: 'bi-person-plus' }, 
+  ];
+
 
 return (
     <div className="flex h-screen overflow-hidden bg-ivory text-black"

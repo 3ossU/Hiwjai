@@ -74,7 +74,7 @@ app.post('/api/leaves', async (req, res) => {
         // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้
         const query = `
             INSERT INTO \`leave\` (user_id, leave_type, start_date, end_date, reason, status)
-            VALUES (?, ?, ?, ?, ?, 'approved')
+            VALUES (?, ?, ?, ?, ?, 'pending')
         `;
 
         // set ลง db จริง ๆ โดยเอาข้อมูลที่รับจากฟ้อนต์เอนไปแปะใน ? ด้านบน
@@ -100,7 +100,7 @@ app.post('/api/leaves', async (req, res) => {
 });
 
 
-// ดึงประวัติการลา
+// ดึงประวัติการลารายบุคคล
 app.get('/api/leaves/:userId', async (req, res) => {
     try {
         const { userId } = req.params; // รับค่า id ของคนนั้นมาก่อน
@@ -123,6 +123,95 @@ app.get('/api/leaves/:userId', async (req, res) => {
     } 
     catch (err) {
         console.error('Error fetching leave history:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+
+// หัวหน้าพยาบาล
+
+// ดึงประวัติใบลาทั้งหมด
+app.get('/api/leaves/history/all', async (req, res) => {
+    try {
+        // ดึงใบลาทั้งหมดที่มีสถานะเป็น approved กับ rejected
+        const query = `
+            SELECT l.id, l.leave_type, l.start_date, l.end_date, l.reason, l.status, l.created_at,
+                   u.first_name, u.last_name, u.role, u.avatar_url
+            FROM \`leave\` l
+            JOIN users u ON l.user_id = u.id
+            WHERE l.status IN ('approved', 'rejected')
+            ORDER BY l.created_at DESC
+        `;
+
+        // สั่ง db ทำงาน
+        const [rows] = await pool.query(query);
+
+        res.json({ 
+            success: true, 
+            data: rows 
+        });
+    } 
+    catch (err) {
+        console.error('Error fetching leave history:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+// ดึงใบลาที่รออนุมัติ
+app.get('/api/leaves/pending/all', async (req, res) => {
+    try {
+        // ดึงข้อมูลในใบลามา
+        const query = `
+            SELECT l.id, l.leave_type, l.start_date, l.end_date, l.reason, l.status, l.created_at,
+                   u.first_name, u.last_name, u.role, u.avatar_url
+            FROM \`leave\` l
+            JOIN users u ON l.user_id = u.id
+            WHERE l.status = 'pending'
+            ORDER BY l.created_at ASC
+        `;
+
+        // สั่งให้ db ทำงาน
+        const [rows] = await pool.query(query);
+
+        res.json({ 
+            success: true, 
+            data: rows 
+        });
+    } 
+    catch (err) {
+        console.error('Error fetching pending leaves:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+
+// approve or reject ใบลา
+app.patch('/api/leaves/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params; // รับค่า id ของพยาบาลคนที่ส่งใบลามา
+        const { status } = req.body; // รับค่า 'approved' หรือ 'rejected'
+
+        // เช็คว่าค่าที่ส่งมามันถูกมั้ย ไม่ทะลึ่งส่งอย่างอื่นนอกจาก approved กับ rejected นะ
+        if (!['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({ success: false, error: 'Invalid status' });
+        }
+
+        // อัพเดตสถานะใบลา
+        const query = `UPDATE \`leave\` SET status = ? WHERE id = ?`;
+        const [result] = await pool.query(query, [status, id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, error: 'Leave request not found' });
+        }
+
+
+        res.json({ 
+            success: true, 
+            message: `Leave request ${status} successfully` 
+        });
+    } 
+    catch (err) {
+        console.error('Error updating leave status:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 });

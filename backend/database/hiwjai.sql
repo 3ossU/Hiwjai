@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: db:3306
--- Generation Time: Nov 15, 2026 at 10:28 PM
+-- Generation Time: Nov 16, 2026 at 07:35 AM
 -- Server version: 8.0.46
 -- PHP Version: 8.3.30
 
@@ -87,7 +87,7 @@ CREATE TABLE `home_visits` (
 
 INSERT INTO `home_visits` (`id`, `team_name`, `lead_doctor_id`, `visit_date`, `start_time`, `end_time`, `status`) VALUES
 (1, 'ทีมพยาบาลชุมชน A', 1, '2026-11-15', '2026-11-15 09:00:00', '2026-11-15 12:00:00', 'planned'),
-(2, 'ทีมแพทย์ชุมชน B', 13, '2026-11-15', '2026-11-15 13:00:00', '2026-11-15 16:00:00', 'planned');
+(2, 'ทีมแพทย์ชุมชน B', 13, '2026-11-15', '2026-11-15 13:00:00', '2026-11-15 16:00:00', 'cancelled');
 
 -- --------------------------------------------------------
 
@@ -108,7 +108,7 @@ CREATE TABLE `home_visit_patients` (
 INSERT INTO `home_visit_patients` (`home_visit_id`, `patient_id`, `status`) VALUES
 (1, 3, 'scheduled'),
 (1, 4, 'scheduled'),
-(2, 11, 'scheduled');
+(2, 11, 'cancelled');
 
 -- --------------------------------------------------------
 
@@ -150,7 +150,7 @@ INSERT INTO `leave` (`id`, `user_id`, `leave_type`, `start_date`, `end_date`, `r
 (1, 2, 'personal', '2026-07-20', '2026-07-21', 'ทำธุระส่วนตัวต่างจังหวัด', 'approved', '2026-11-10 13:26:04'),
 (2, 2, 'annual', '2026-12-25', '2026-12-27', 'ไปเที่ยวปีใหม่', 'pending', '2026-11-10 20:50:39'),
 (3, 1, 'sick', '2026-12-25', '2026-12-27', 'ลาป่วย', 'approved', '2026-11-14 13:45:12'),
-(5, 17, 'sick', '2026-11-20', '2026-11-21', 'ลาป่วยเนื่องจากเป็นไข้', 'pending', '2026-11-15 22:18:59');
+(4, 17, 'sick', '2026-11-20', '2026-11-21', 'ลาป่วยเนื่องจากเป็นไข้', 'pending', '2026-11-15 22:18:59');
 
 -- --------------------------------------------------------
 
@@ -204,7 +204,7 @@ CREATE TABLE `users` (
   `gender` enum('male','female','other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `phone_number` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `role` enum('patient','doctor','nurse','admin','cashier','finance','pharmacist') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` enum('patient','doctor','nurse','head_nurse','admin','cashier','finance','pharmacist') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -218,7 +218,7 @@ INSERT INTO `users` (`id`, `username`, `password_hash`, `first_name`, `last_name
 (2, 'nurse_fatima', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Fatima', 'Dechawaleekul', 'female', '082-222-2222', 'https://i.pinimg.com/736x/e9/51/9d/e9519d7113fca956b5efe772f36e5e31.jpg', 'nurse', '2026-11-10 13:26:04', '2026-11-15 20:52:03'),
 (3, 'pat_nuttanicha', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Nuttanicha', 'Dungwattanawanich', 'female', '083-333-3333', 'https://i.pinimg.com/1200x/8b/bb/17/8bbb175d7ffd0dccbfa08af0c0705b8e.jpg', 'patient', '2026-11-10 13:26:04', '2026-11-15 20:51:19'),
 (4, 'pat_tontawan', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Tontawan', 'Tantivejakul', 'female', '084-444-4444', 'https://i.pinimg.com/736x/c3/19/e0/c319e09ce5b6bf122f01fc529549cb66.jpg', 'patient', '2026-11-10 13:26:04', '2026-11-15 20:51:19'),
-(5, 'pat_natcha', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Natcha', 'Techamongklapiwat', 'female', '085-555-5551', 'https://i.pinimg.com/736x/84/93/75/849375f4c7365d908321580eecdcd7d0.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-15 20:51:19'),
+(5, 'pat_natsha', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Natsha', 'Techamongklapiwat', 'female', '085-555-5551', 'https://i.pinimg.com/736x/84/93/75/849375f4c7365d908321580eecdcd7d0.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-16 07:15:55'),
 (6, 'pat_saralee', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Saralee', 'Prasitdumrong', 'female', '085-555-5552', 'https://i.pinimg.com/736x/13/58/eb/1358eb5e3d052d991839d2fb8909c737.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-15 20:51:19'),
 (7, 'pat_eisaya', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Eisaya', 'Hosuwan', 'female', '085-555-5553', 'https://i.pinimg.com/736x/ff/1a/af/ff1aaff504a59613f806654e58f5ac46.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-15 20:51:19'),
 (8, 'pat_sirilak', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Sirilak', 'Kwong', 'female', '085-555-5554', 'https://i.pinimg.com/736x/c2/28/19/c22819b9af9f0bd2d2ea7b70f3e20700.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-15 20:51:19'),
@@ -230,7 +230,8 @@ INSERT INTO `users` (`id`, `username`, `password_hash`, `first_name`, `last_name
 (14, 'pat_kanawut', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Kanawut', 'Traipipattanapong', 'male', '086-666-6662', 'https://i.pinimg.com/1200x/86/d3/4f/86d34fbd0dd0877a785769d98d19bfe3.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-15 20:51:19'),
 (15, 'pat_panitan', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Panitan', 'Budkaew', 'male', '086-666-6663', 'https://i.pinimg.com/736x/68/0a/fa/680afa5a4edddf37c1cde15bf22d753c.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-15 20:51:19'),
 (16, 'dr_kajbhunditt', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Kajbhunditt', 'Jaidee', 'male', '086-666-6664', 'https://i.pinimg.com/736x/83/42/23/834223a6fd4ab3ffab269f4c23d10307.jpg', 'doctor', '2026-11-16 03:09:00', '2026-11-15 22:00:07'),
-(17, 'nurse_suchada', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Suchada', 'Sonpan', 'female', '062-345-6789', 'https://i.pinimg.com/1200x/4d/31/18/4d3118a61ebc2058019d44fcb75b3b87.jpg', 'nurse', '2026-11-15 22:12:34', '2026-11-15 22:17:10');
+(17, 'nurse_suchada', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Suchada', 'Sonpan', 'female', '062-345-6789', 'https://i.pinimg.com/1200x/4d/31/18/4d3118a61ebc2058019d44fcb75b3b87.jpg', 'nurse', '2026-11-15 22:12:34', '2026-11-16 07:22:09'),
+(18, 'nurse_thitiya', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Thitiya', 'Jirapornsilp', 'female', '081-234-5678', 'https://i.pinimg.com/736x/e1/22/56/e12256219221dffc353734fe4e7d1a70.jpg', 'head_nurse', '2026-11-16 07:21:47', '2026-11-16 07:24:32');
 
 --
 -- Indexes for dumped tables
@@ -339,7 +340,7 @@ ALTER TABLE `patient_info`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- Constraints for dumped tables

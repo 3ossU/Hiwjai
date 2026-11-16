@@ -13,6 +13,7 @@ import Leave from './pages/nurse/Leave'
 import NurseBooking from './pages/nurse/Booking'
 import PatientInfos from './pages/nurse/PatientInfos'
 import AddUser from './pages/nurse/AddUser'
+import ApproveLeave from './pages/nurse/ApproveLeave'
 
 const NurseRoute = () => {
   const user = store.user()
@@ -21,7 +22,7 @@ const NurseRoute = () => {
     return <Navigate to="/login" replace />
   }
 
-  if (user.role !== 'nurse') {
+  if (user.role !== 'nurse' && user.role !== 'head_nurse') {
     return <Navigate to="/home" replace />
   }
 
@@ -34,7 +35,7 @@ function App() {
 
   const handleLogin = (u) => {
     setUser(u)
-    if (u.role === 'nurse') {
+    if (u.role === 'nurse' || u.role === 'head_nurse') {
       navigate('/nurse/dashboard', { replace: true })
     } else {
       navigate('/home', { replace: true })
@@ -46,27 +47,33 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={user ? (user.role === 'nurse' ? '/nurse/dashboard' : '/home') : '/login'} replace />} />
+      <Route path="/" element={
+        <Navigate to={user ? (
+          (user.role === 'nurse' || user.role === 'head_nurse') ? '/nurse/dashboard' : '/home'
+        ) : '/login'} replace />
+      } />
+      
       <Route path="/login" element={<Login onLogin={handleLogin} />} />
+      
       <Route
         path="/home"
         element={guard(<div className="p-8">สวัสดี {user?.name}</div>)}
-      />
-      <Route path="/booking" element={guard(<Booking />)} />
+      />    
+      <Route path="/booking" element={guard(<Booking />)} />    
       <Route path="/myrecords" element={guard(<MyRecords />)} />
 
-
-    <Route element={<NurseRoute />}>
-      <Route path='/nurse' element={<Layout user={user} />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path='dashboard' element={<Dashboard user={user} />} />
-        <Route path='homevisit' element={<HomeVisit user={user} />} />
-        <Route path='leave' element={<Leave user={user} />} />
-        <Route path='booking' element={<NurseBooking user={user} />} />
-        <Route path='patientinfos' element={<PatientInfos user={user}  />} />
-        <Route path='adduser' element={<AddUser user={user} />} />
+      <Route element={<NurseRoute />}>
+        <Route path='/nurse' element={<Layout user={user} />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path='dashboard' element={<Dashboard user={user} />} />
+          <Route path='homevisit' element={<HomeVisit user={user} />} />
+          <Route path='leave' element={<Leave user={user} />} />
+          <Route path='booking' element={<NurseBooking user={user} />} />
+          <Route path='patientinfos' element={<PatientInfos user={user} />} />
+          <Route path='adduser' element={<AddUser user={user} />} />
+          <Route path='approveleave' element={<ApproveLeave user={user} />} />
+        </Route>
       </Route>
-    </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
