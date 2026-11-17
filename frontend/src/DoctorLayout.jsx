@@ -1,26 +1,37 @@
-<<<<<<< HEAD
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-=======
 
-import { NavLink, Outlet } from 'react-router-dom';
->>>>>>> 2b601b9f5e803bb2fb27ee472c6447270a073eac
-import { store } from './api';
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { store } from './api'
 
 function DoctorLayout() {
-    const user = store.user();
-<<<<<<< HEAD
-    const location = useLocation();
+    const user = store.user()
+    const location = useLocation()
 
     const menus = [
-        { to: '/dr/appointments', label: 'ตารางนัดหมาย', title: 'ตารางนัดหมาย' },
-        { to: '/dr/patient-history', label: 'ดูประวัติคนไข้', title: 'ประวัติคนไข้' },
-        { to: '/dr/manage-leave', label: 'จัดการวันหยุด', title: 'จัดการวันหยุด' },
-        { to: '/dr/prescription', label: 'ฟอร์มสั่งยา', title: 'ฟอร์มสั่งยา' },
-    ];
+        {
+            to: '/dr/appointments',
+            label: 'ตารางนัดหมาย',
+            title: 'ตารางนัดหมาย'
+        },
+        {
+            to: '/dr/patient-history',
+            label: 'ดูประวัติคนไข้',
+            title: 'ประวัติคนไข้'
+        },
+        {
+            to: '/dr/manage-leave',
+            label: 'จัดการวันหยุด',
+            title: 'จัดการวันหยุด'
+        },
+        {
+            to: '/dr/prescription',
+            label: 'ฟอร์มสั่งยา',
+            title: 'ฟอร์มสั่งยา'
+        },
+    ]
 
-    const currentTitle = menus.find((m) => location.pathname.startsWith(m.to))?.title;
-=======
->>>>>>> 2b601b9f5e803bb2fb27ee472c6447270a073eac
+    const currentTitle = menus.find(
+        (m) => location.pathname.startsWith(m.to)
+    )?.title
 
     return (
         <div className="doctor-portal">
@@ -29,10 +40,6 @@ function DoctorLayout() {
             <aside className="sidebar">
 
                 <div className="brand">
-<<<<<<< HEAD
-=======
-
->>>>>>> 2b601b9f5e803bb2fb27ee472c6447270a073eac
                     <div>
                         <h2>HIWJAI</h2>
                         <span>DOCTOR PORTAL</span>
@@ -42,7 +49,6 @@ function DoctorLayout() {
                 <div className="sidebar-menu">
                     <p className="menu-heading">เมนูหลัก</p>
 
-<<<<<<< HEAD
                     {menus.map((m) => (
                         <NavLink
                             key={m.to}
@@ -54,47 +60,6 @@ function DoctorLayout() {
                             <span>{m.label}</span>
                         </NavLink>
                     ))}
-=======
-                    <NavLink
-                        to="/appointments"
-                        className={({ isActive }) =>
-                            `menu-item ${isActive ? 'active' : ''}`
-                        }
-                    >
-
-                        <span>ตารางนัดหมาย</span>
-                    </NavLink>
-
-                    <NavLink
-                        to="/patient-history"
-                        className={({ isActive }) =>
-                            `menu-item ${isActive ? 'active' : ''}`
-                        }
-                    >
-
-                        <span>ดูประวัติคนไข้</span>
-                    </NavLink>
-
-                    <NavLink
-                        to="/manage-leave"
-                        className={({ isActive }) =>
-                            `menu-item ${isActive ? 'active' : ''}`
-                        }
-                    >
-
-                        <span>จัดการวันหยุด</span>
-                    </NavLink>
-
-                    <NavLink
-                        to="/prescription"
-                        className={({ isActive }) =>
-                            `menu-item ${isActive ? 'active' : ''}`
-                        }
-                    >
-
-                        <span>ฟอร์มสั่งยา</span>
-                    </NavLink>
->>>>>>> 2b601b9f5e803bb2fb27ee472c6447270a073eac
                 </div>
 
                 {/* ข้อมูลแพทย์ */}
@@ -112,8 +77,8 @@ function DoctorLayout() {
                 <button
                     className="logout-button"
                     onClick={() => {
-                        store.clear();
-                        window.location.href = '/login';
+                        store.clear()
+                        window.location.href = '/login'
                     }}
                 >
                     ออกจากระบบ
@@ -126,17 +91,7 @@ function DoctorLayout() {
 
                 <header className="topbar">
                     <div className="breadcrumb">
-<<<<<<< HEAD
                         Doctor Portal / <strong>{currentTitle}</strong>
-=======
-                        Doctor Portal /
-                        <strong>
-                            {location.pathname === '/appointments' && 'ตารางนัดหมาย'}
-                            {location.pathname === '/patient-history' && 'ประวัติคนไข้'}
-                            {location.pathname === '/manage-leave' && 'จัดการวันหยุด'}
-                            {location.pathname === '/prescription' && 'ฟอร์มสั่งยา'}
-                        </strong>
->>>>>>> 2b601b9f5e803bb2fb27ee472c6447270a073eac
                     </div>
 
                     <div className="topbar-actions">
@@ -150,11 +105,7 @@ function DoctorLayout() {
 
             </main>
         </div>
-    );
+    )
 }
 
-<<<<<<< HEAD
-export default DoctorLayout;
-=======
-export default DoctorLayout;
->>>>>>> 2b601b9f5e803bb2fb27ee472c6447270a073eac
+export default DoctorLayout

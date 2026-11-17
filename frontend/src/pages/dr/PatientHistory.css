@@ -1,0 +1,286 @@
+.patient-history {
+    padding: 25px;
+    color: #263445;
+    min-height: 100%;
+}
+
+.history-header {
+    margin-bottom: 25px;
+}
+
+.history-header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+
+.history-header p {
+    color: #8793a1;
+    margin: 0;
+}
+
+/* กล่องค้นหาและรายการผู้ป่วย */
+.history-search,
+.patient-results,
+.records-section {
+    background: #fff;
+    padding: 22px;
+    border: 1px solid #e8edf2;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(38, 52, 69, 0.04);
+}
+
+.history-search h3,
+.patient-results h3,
+.records-heading h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 15px;
+}
+
+.history-search form {
+    display: flex;
+    gap: 10px;
+}
+
+.history-search input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #dce3ea;
+    border-radius: 8px;
+    outline: none;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.history-search input:focus {
+    border-color: #00b6d6;
+}
+
+.history-search button {
+    background: #00a9c7;
+    color: white;
+    border: none;
+    padding: 0 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.history-search button:hover {
+    background: #008da8;
+}
+
+/* รายชื่อผู้ป่วย */
+.patient-result {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border-bottom: 1px solid #edf0f3;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.patient-result:last-child {
+    border-bottom: none;
+}
+
+.patient-result:hover,
+.patient-result.active {
+    background: #effbfe;
+}
+
+.patient-avatar {
+    flex-shrink: 0;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: #e5f8fc;
+    color: #00a9c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.patient-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.patient-info h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.patient-info p,
+.selected-patient p {
+    color: #8793a1;
+    margin: 4px 0 0;
+    font-size: 13px;
+}
+
+/* ผู้ป่วยที่เลือก */
+.selected-patient {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.selected-patient h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.patient-avatar.large {
+    width: 55px;
+    height: 55px;
+}
+
+/* รายการประวัติการรักษา */
+.records-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 25px 0 18px;
+}
+
+.records-heading h3 {
+    margin: 0;
+}
+
+.records-heading span {
+    color: #00a9c7;
+    font-size: 14px;
+}
+
+.record-card {
+    border: 1px solid #e5ebf0;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.record-card:last-child {
+    margin-bottom: 0;
+}
+
+.record-date {
+    background: #effbfe;
+    padding: 13px 18px;
+    color: #008da8;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.record-content {
+    padding: 20px;
+}
+
+.doctor-name {
+    color: #8793a1;
+    font-size: 13px;
+    margin-bottom: 18px;
+}
+
+.record-detail {
+    margin-bottom: 16px;
+}
+
+.record-detail:last-child {
+    margin-bottom: 0;
+}
+
+.record-detail strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #344456;
+}
+
+.record-detail p {
+    margin: 0;
+    color: #657386;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+/* สถานะและข้อความแจ้งเตือน */
+.history-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #98a3af;
+}
+
+.history-empty i {
+    font-size: 35px;
+    margin-bottom: 10px;
+}
+
+.history-error {
+    padding: 12px 15px;
+    background: #fff1f1;
+    color: #d33;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.history-loading {
+    text-align: center;
+    padding: 25px;
+    color: #8793a1;
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    .patient-history {
+        padding: 16px;
+    }
+
+    .history-search,
+    .patient-results,
+    .records-section {
+        padding: 16px;
+    }
+
+    .record-content {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .history-search form {
+        flex-direction: column;
+    }
+
+    .history-search button {
+        padding: 12px;
+    }
+
+    .records-heading {
+        align-items: flex-start;
+        gap: 8px;
+        flex-direction: column;
+    }
+
+    .selected-patient h2 {
+        font-size: 17px;
+    }
+}

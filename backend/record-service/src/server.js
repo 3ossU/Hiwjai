@@ -153,8 +153,8 @@ app.post('/api/records', auth, role(...WRITERS), async (req, res) => {
           treatment_note, prescription, follow_up_date)
        VALUES (?, ?, ?, COALESCE(?, NOW()), ?, ?, ?, ?, ?)`,
       [b.patient_id, doctorId, bookingId, visitDate,
-       b.chief_complaint || null, b.diagnosis || null, b.treatment_note || null,
-       JSON.stringify(cleanRx(b.prescription)), followUp]
+      b.chief_complaint || null, b.diagnosis || null, b.treatment_note || null,
+      JSON.stringify(cleanRx(b.prescription)), followUp]
     );
     res.status(201).json({ success: true, id: r.insertId });
   } catch (e) { fail(res, e); }
