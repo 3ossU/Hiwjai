@@ -1,4 +1,18 @@
 {
+<<<<<<< HEAD
+=======
+  "name": "appointments-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+>>>>>>> 2b601b9f5e803bb2fb27ee472c6447270a073eac
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^18.0.10",
