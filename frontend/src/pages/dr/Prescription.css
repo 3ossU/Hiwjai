@@ -1,0 +1,202 @@
+.prescription-page {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 28px;
+}
+
+.prescription-heading {
+    margin-bottom: 25px;
+}
+
+.prescription-heading h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    color: #263445;
+    font-weight: 600;
+}
+
+.prescription-heading p {
+    color: #84909e;
+    margin: 0;
+}
+
+.prescription-card {
+    background: white;
+    border: 1px solid #e5eaf0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.prescription-card h3 {
+    font-size: 17px;
+    margin: 0 0 20px;
+}
+
+.prescription-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.prescription-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prescription-field label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.prescription-field input,
+.prescription-field select,
+.prescription-field textarea,
+.doctor-note {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid #dce3eb;
+    border-radius: 7px;
+    font-size: 14px;
+    outline: none;
+    background: white;
+}
+
+.prescription-field input:focus,
+.prescription-field select:focus,
+.prescription-field textarea:focus,
+.doctor-note:focus {
+    border-color: #00C0E8;
+}
+
+.prescription-field textarea,
+.doctor-note {
+    min-height: 85px;
+    resize: vertical;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.prescription-hint {
+    color: #8a95a3;
+    font-size: 12px;
+    margin-top: 15px;
+}
+
+.prescription-choice {
+    display: flex;
+    gap: 15px;
+}
+
+.prescription-choice label {
+    padding: 14px 20px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prescription-choice label.selected {
+    border-color: #00C0E8;
+    background: #eff8f6;
+    color: #00C0E8;
+}
+
+.prescription-section-header,
+.medicine-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.add-medicine-btn,
+.save-prescription-btn {
+    background: #00C0E8;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    padding: 11px 18px;
+    cursor: pointer;
+    margin-bottom: 12px;
+}
+
+.medicine-box {
+    border: 1px solid #e5eaf0;
+    border-radius: 9px;
+    padding: 20px;
+    margin-bottom: 18px;
+    background: #fcfdfe;
+}
+
+.medicine-header {
+    margin-bottom: 20px;
+}
+
+.remove-medicine-btn {
+    background: #fff0f0;
+    color: #d34b4b;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.doctor-note {
+    min-height: 110px;
+}
+
+.prescription-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.cancel-prescription-btn {
+    background: white;
+    border: 1px solid #dce3eb;
+    border-radius: 7px;
+    padding: 11px 20px;
+    cursor: pointer;
+}
+
+.save-prescription-btn:hover,
+.add-medicine-btn:hover {
+    background: #28776e;
+}
+
+.cancel-prescription-btn,
+.save-prescription-btn {
+    min-width: 150px;
+    height: 42px;
+    padding: 0 20px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+@media (max-width: 700px) {
+    .prescription-page {
+        padding: 15px;
+    }
+
+    .prescription-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .prescription-choice {
+        flex-direction: column;
+    }
+
+    .prescription-section-header {
+        align-items: flex-start;
+        gap: 10px;
+        flex-direction: column;
+    }
+}

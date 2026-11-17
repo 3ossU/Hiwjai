@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: db:3306
--- Generation Time: Nov 16, 2026 at 07:35 AM
+-- Generation Time: Nov 17, 2026 at 03:47 PM
 -- Server version: 8.0.46
--- PHP Version: 8.3.30
+-- PHP Version: 8.3.36
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -48,8 +48,8 @@ CREATE TABLE `booking` (
   `appointment_date` date NOT NULL,
   `start_time` datetime NOT NULL,
   `end_time` datetime NOT NULL,
-  `status` enum('scheduled','completed','cancelled') COLLATE utf8mb4_unicode_ci DEFAULT 'scheduled',
-  `note` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('scheduled','completed','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'scheduled',
+  `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -73,12 +73,12 @@ INSERT INTO `booking` (`id`, `patient_id`, `doctor_id`, `created_by_nurse_id`, `
 
 CREATE TABLE `home_visits` (
   `id` int NOT NULL,
-  `team_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `team_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `lead_doctor_id` int NOT NULL,
   `visit_date` date NOT NULL,
   `start_time` datetime NOT NULL,
   `end_time` datetime NOT NULL,
-  `status` enum('planned','in_progress','completed','cancelled') COLLATE utf8mb4_unicode_ci DEFAULT 'planned'
+  `status` enum('planned','in_progress','completed','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'planned'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -98,7 +98,7 @@ INSERT INTO `home_visits` (`id`, `team_name`, `lead_doctor_id`, `visit_date`, `s
 CREATE TABLE `home_visit_patients` (
   `home_visit_id` int NOT NULL,
   `patient_id` int NOT NULL,
-  `status` enum('scheduled','visited','cancelled') COLLATE utf8mb4_unicode_ci DEFAULT 'scheduled'
+  `status` enum('scheduled','visited','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'scheduled'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -134,11 +134,11 @@ CREATE TABLE `hospital_activities` (
 CREATE TABLE `leave` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
-  `leave_type` enum('sick','personal','maternity','annual') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `leave_type` enum('sick','personal','maternity','annual') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
-  `reason` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
+  `reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('pending','approved','rejected') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -155,20 +155,48 @@ INSERT INTO `leave` (`id`, `user_id`, `leave_type`, `start_date`, `end_date`, `r
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `medicines`
+--
+
+CREATE TABLE `medicines` (
+  `MedicineId` int NOT NULL,
+  `MedicineName` varchar(255) NOT NULL,
+  `Strength` varchar(100) DEFAULT NULL,
+  `DosageForm` varchar(100) DEFAULT NULL,
+  `Unit` varchar(50) DEFAULT NULL,
+  `Description` text,
+  `StockQuantity` int DEFAULT '0',
+  `Status` varchar(30) DEFAULT 'active',
+  `CreatedAt` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `medicines`
+--
+
+INSERT INTO `medicines` (`MedicineId`, `MedicineName`, `Strength`, `DosageForm`, `Unit`, `Description`, `StockQuantity`, `Status`, `CreatedAt`) VALUES
+(1, 'Sertraline', '50 mg', 'Tablet', 'เม็ด', 'ยาต้านเศร้ากลุ่ม SSRI', 100, 'active', '2026-11-13 18:02:41'),
+(2, 'Fluoxetine', '20 mg', 'Capsule', 'แคปซูล', 'ยาต้านเศร้ากลุ่ม SSRI', 100, 'active', '2026-11-13 18:02:41'),
+(3, 'Escitalopram', '10 mg', 'Tablet', 'เม็ด', 'ยาต้านเศร้ากลุ่ม SSRI', 100, 'active', '2026-11-13 18:02:41'),
+(4, 'Quetiapine', '25 mg', 'Tablet', 'เม็ด', 'ยากลุ่มต้านโรคจิต ใช้รักษาอาการทางจิตเวชบางประเภท', 100, 'active', '2026-11-13 18:02:41');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `patient_info`
 --
 
 CREATE TABLE `patient_info` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
-  `hn` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `hn` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `age` int NOT NULL,
   `weight` decimal(5,2) DEFAULT NULL,
   `height` decimal(5,2) DEFAULT NULL,
-  `blood_group` enum('A','B','AB','O') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `allergies` text COLLATE utf8mb4_unicode_ci,
-  `address` text COLLATE utf8mb4_unicode_ci,
-  `emergency_contact` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+  `blood_group` enum('A','B','AB','O') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `allergies` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `address` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `emergency_contact` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -192,18 +220,74 @@ INSERT INTO `patient_info` (`id`, `user_id`, `hn`, `age`, `weight`, `height`, `b
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `prescriptions`
+--
+
+CREATE TABLE `prescriptions` (
+  `PrescriptionId` int NOT NULL COMMENT 'รหัสใบสั่งยา',
+  `user_id` int NOT NULL COMMENT 'รหัสคนไข้',
+  `DoctorId` int NOT NULL COMMENT 'รหัสแพทย์',
+  `Diagnosis` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT 'การวินิจฉัย',
+  `DoctorNote` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT 'หมายเหตุแพทย์',
+  `PrescriptionDate` datetime DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่ออกใบสั่งยา',
+  `Status` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'active' COMMENT 'สถานะใบสั่งยา',
+  `BookingId` int DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `prescriptions`
+--
+
+INSERT INTO `prescriptions` (`PrescriptionId`, `user_id`, `DoctorId`, `Diagnosis`, `DoctorNote`, `PrescriptionDate`, `Status`, `BookingId`) VALUES
+(3, 3, 1, NULL, NULL, '2026-11-13 18:19:08', 'active', NULL),
+(4, 3, 1, NULL, NULL, '2026-11-13 18:24:57', 'active', 1),
+(5, 4, 1, NULL, NULL, '2026-11-13 18:29:02', 'active', 2);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `prescription_items`
+--
+
+CREATE TABLE `prescription_items` (
+  `ItemId` int NOT NULL,
+  `PrescriptionId` int NOT NULL,
+  `MedicineName` varchar(255) NOT NULL,
+  `Strength` varchar(100) DEFAULT NULL,
+  `Dosage` varchar(100) DEFAULT NULL,
+  `Frequency` varchar(100) DEFAULT NULL,
+  `Duration` varchar(100) DEFAULT NULL,
+  `Quantity` int DEFAULT NULL,
+  `Instructions` text,
+  `MedicineId` int DEFAULT NULL,
+  `Route` varchar(100) DEFAULT NULL,
+  `Meal` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `prescription_items`
+--
+
+INSERT INTO `prescription_items` (`ItemId`, `PrescriptionId`, `MedicineName`, `Strength`, `Dosage`, `Frequency`, `Duration`, `Quantity`, `Instructions`, `MedicineId`, `Route`, `Meal`) VALUES
+(2, 4, 'Escitalopram', '10 mg', '1', '1', '1', 1, 'ทานจนหมด', 3, 'รับประทาน', 'ก่อนอาหาร'),
+(3, 5, 'Escitalopram', '10 mg', '1', '1', '15', 1, 'ทานจนหมด', 3, 'รับประทาน', 'ก่อนอาหาร'),
+(4, 5, 'Quetiapine', '25 mg', '2', '3', '10', 1, 'ทานจนหมด', 4, 'รับประทาน', 'พร้อมอาหาร');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
 CREATE TABLE `users` (
   `id` int NOT NULL,
-  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `first_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `last_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `gender` enum('male','female','other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `phone_number` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `avatar_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `first_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `last_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `gender` enum('male','female','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `role` enum('patient','doctor','nurse','head_nurse','admin','cashier','finance','pharmacist') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -282,12 +366,31 @@ ALTER TABLE `leave`
   ADD KEY `nurse_id` (`user_id`);
 
 --
+-- Indexes for table `medicines`
+--
+ALTER TABLE `medicines`
+  ADD PRIMARY KEY (`MedicineId`);
+
+--
 -- Indexes for table `patient_info`
 --
 ALTER TABLE `patient_info`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `hn` (`hn`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `prescriptions`
+--
+ALTER TABLE `prescriptions`
+  ADD PRIMARY KEY (`PrescriptionId`);
+
+--
+-- Indexes for table `prescription_items`
+--
+ALTER TABLE `prescription_items`
+  ADD PRIMARY KEY (`ItemId`),
+  ADD KEY `PrescriptionId` (`PrescriptionId`);
 
 --
 -- Indexes for table `users`
@@ -331,10 +434,28 @@ ALTER TABLE `leave`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT for table `medicines`
+--
+ALTER TABLE `medicines`
+  MODIFY `MedicineId` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `patient_info`
 --
 ALTER TABLE `patient_info`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
+-- AUTO_INCREMENT for table `prescriptions`
+--
+ALTER TABLE `prescriptions`
+  MODIFY `PrescriptionId` int NOT NULL AUTO_INCREMENT COMMENT 'รหัสใบสั่งยา', AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `prescription_items`
+--
+ALTER TABLE `prescription_items`
+  MODIFY `ItemId` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `users`
