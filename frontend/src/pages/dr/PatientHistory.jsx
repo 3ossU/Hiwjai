@@ -36,7 +36,7 @@ function PatientHistory() {
             }
 
             const response = await fetch(
-                `${apiUrl}/api/patients?q=${encodeURIComponent(search)}`,
+                `http://localhost:5004/api/patients?search=${encodeURIComponent(search)}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -131,7 +131,7 @@ function PatientHistory() {
             <div className="history-header">
                 <div>
                     <h1>ประวัติผู้ป่วย</h1>
-                    <p>ค้นหาและดูประวัติการเข้ารับบริการของผู้ป่วย</p>
+                    {/* <p>ค้นหาและดูประวัติการเข้ารับบริการของผู้ป่วย</p> */}
                 </div>
             </div>
 

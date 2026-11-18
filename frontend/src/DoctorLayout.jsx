@@ -24,8 +24,8 @@ function DoctorLayout() {
         },
         {
             to: '/dr/prescription',
-            label: 'ฟอร์มสั่งยา',
-            title: 'ฟอร์มสั่งยา'
+            label: 'จัดการผู้ป่วยและการรักษา',
+            title: 'จัดการผู้ป่วยและการรักษา'
         },
     ]
 

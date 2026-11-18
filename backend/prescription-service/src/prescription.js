@@ -76,6 +76,24 @@ router.get('/medicines', verifyDoctor, async (req, res) => {
 });
 
 
+
+// คืนค่าวันที่ปัจจุบันตามเวลาไทย
+function getTodayBangkok() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date());
+
+    const values = Object.fromEntries(
+        parts.map(part => [part.type, part.value])
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+
 // ======================================
 // API บันทึกประวัติการรักษา
 // + ใบสั่งยา
@@ -158,6 +176,19 @@ router.post('/', verifyDoctor, async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'วันที่นัดไม่ถูกต้อง'
+            });
+        }
+
+
+
+
+        // ห้ามเลือกวันที่ในอดีต (อิงเวลาไทย)
+        const today = getTodayBangkok();
+
+        if (follow_up_date < today) {
+            return res.status(400).json({
+                success: false,
+                message: 'ไม่สามารถเลือกวันที่ผ่านมาแล้วได้ กรุณาเลือกวันใหม่'
             });
         }
 
@@ -283,7 +314,7 @@ router.post('/', verifyDoctor, async (req, res) => {
                 patientId,
                 doctorId,
                 bookingId,
-                visit_date || new Date(),
+                getTodayBangkok(),
                 chief_complaint || null,
                 diagnosis || null,
                 treatment_note || null,

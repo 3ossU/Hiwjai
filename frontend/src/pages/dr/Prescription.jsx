@@ -3,6 +3,22 @@ import { useState, useEffect } from 'react';
 import { store } from '../../api';
 import './Prescription.css';
 
+// วันที่ปัจจุบันตามเวลาไทย
+function getTodayBangkok() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date());
+
+    const values = Object.fromEntries(
+        parts.map(part => [part.type, part.value])
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
 function Prescription() {
     const apiUrl = 'http://localhost:3006';
 
@@ -43,6 +59,12 @@ function Prescription() {
     const [saving, setSaving] = useState(false);
 
     const [error, setError] = useState('');
+
+
+    //date
+    const [followUpDate, setFollowUpDate] = useState('');
+    const [visitDate] = useState(getTodayBangkok());
+
 
     // ดึงรายการยาจากฐานข้อมูล
     useEffect(() => {
@@ -233,18 +255,24 @@ function Prescription() {
             : [];
 
         // รับค่าวันและเวลานัด
-        const followUpDate = e.target.followUpDate.value;
+        const selectedFollowUpDate = followUpDate;
         const followUpStartTime = e.target.followUpStartTime.value;
         const followUpEndTime = e.target.followUpEndTime.value;
 
+        // ตรวจสอบไม่ให้เลือกวันนัดย้อนหลัง
+        if (selectedFollowUpDate && selectedFollowUpDate < getTodayBangkok()) {
+            alert('ไม่สามารถเลือกวันนัดย้อนหลังได้');
+            return;
+        }
+
         // ตรวจสอบเวลาเมื่อตั้งวันนัด
-        if (followUpDate && (!followUpStartTime || !followUpEndTime)) {
+        if (selectedFollowUpDate && (!followUpStartTime || !followUpEndTime)) {
             alert('กรุณาเลือกเวลาเริ่มนัดและเวลาสิ้นสุดนัด');
             return;
         }
 
         // ตรวจสอบลำดับเวลา
-        if (followUpDate && followUpStartTime >= followUpEndTime) {
+        if (selectedFollowUpDate && followUpStartTime >= followUpEndTime) {
             alert('เวลาสิ้นสุดนัดต้องมากกว่าเวลาเริ่มนัด');
             return;
         }
@@ -265,13 +293,13 @@ function Prescription() {
                 booking_id: null,
 
                 // ประวัติการรักษา
-                visit_date: e.target.visitDate.value,
+                visit_date: visitDate,
                 chief_complaint: e.target.chiefComplaint.value,
                 diagnosis: e.target.diagnosis.value,
                 treatment_note: e.target.treatmentNote.value,
 
                 // วันและเวลานัดติดตาม
-                follow_up_date: followUpDate || null,
+                follow_up_date: selectedFollowUpDate || null,
                 follow_up_start_time: followUpStartTime || null,
                 follow_up_end_time: followUpEndTime || null,
 
@@ -305,6 +333,7 @@ function Prescription() {
             // ล้างข้อมูลฟอร์ม
             setHasMedicine('yes');
             setMedicines([{ ...emptyMedicine }]);
+            setFollowUpDate('');
             e.target.reset();
 
             // โหลดประวัติใบสั่งยาใหม่
@@ -342,8 +371,8 @@ function Prescription() {
 
             <div className="prescription-heading">
                 <div>
-                    <h1>ฟอร์มสั่งยา</h1>
-                    <p>ค้นหาผู้ป่วย ตรวจสอบประวัติ และสั่งยา</p>
+                    <h1>ระบบจัดการผู้ป่วยและการรักษา</h1>
+                    {/* <p>ค้นหาผู้ป่วย ตรวจสอบประวัติ และสั่งยา</p> */}
                 </div>
             </div>
 
@@ -537,25 +566,35 @@ function Prescription() {
                         <h3>ประวัติการรักษา</h3>
 
                         <div className="prescription-grid">
+
                             <div className="prescription-field">
+
                                 <label>วันที่เข้ารับการรักษา</label>
                                 <input
                                     type="date"
                                     name="visitDate"
-                                    defaultValue={new Date(
-                                        Date.now() - new Date().getTimezoneOffset() * 60000
-                                    ).toISOString().slice(0, 10)}
-                                    required
+                                    value={visitDate}
+                                    disabled
                                 />
+
                             </div>
 
+
+
                             <div className="prescription-field">
+
                                 <label>วันนัดติดตาม</label>
+
                                 <input
                                     type="date"
                                     name="followUpDate"
+                                    min={getTodayBangkok()}
+                                    value={followUpDate}
+                                    onChange={(e) => setFollowUpDate(e.target.value)}
                                 />
+
                             </div>
+
 
                             <div className="prescription-field">
                                 <label>เวลาเริ่มนัด</label>
