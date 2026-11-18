@@ -1,0 +1,24 @@
+.ac-center { text-align: center; }
+.ac-tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+
+.ac-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.ac-grid > .pt-card + .pt-card { margin-top: 0; }
+.ac-wide { grid-column: 1 / -1; }
+
+.ac-item { display: flex; flex-direction: column; gap: 6px; padding-top: 0; }
+.ac-bar { height: 8px; margin: 0 -20px 12px; background: #00c1e8; }
+.ac-item h3 { margin: 0; }
+.ac-meta { font-size: 13px; color: #5b6b72; }
+.ac-desc { margin: 6px 0; font-size: 14px; }
+.ac-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}

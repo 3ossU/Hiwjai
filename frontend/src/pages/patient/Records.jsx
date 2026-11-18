@@ -1,32 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { svc } from '../api'
+import { svc } from '../../api'
+import { fmtDateTime } from './utils'
 
-const BG = { background: 'linear-gradient(180deg, #e0f7fc 0%, #ffffff 100%)' }
-
-const fmtDateTime = (v) => {
-  if (!v) return '-'
-  const d = new Date(String(v).replace(' ', 'T'))
-  return isNaN(d) ? String(v) : d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
-}
-
-export default function MyRecords() {
+export default function Records() {
   const [list, setList] = useState(null)
   const [openId, setOpenId] = useState(null)
   const [err, setErr] = useState('')
 
   useEffect(() => {
     svc('record', '/api/records/my')
-      .then(r => setList(r.data))
-      .catch(e => setErr(e.message))
+      .then((r) => setList(r.data))
+      .catch((e) => setErr(e.message))
   }, [])
 
   return (
-    <div className="min-h-screen p-6" style={BG}>
-      <div className="max-w-3xl mx-auto">
-        <Link to="/home" className="text-sm text-sky-700">← กลับหน้าหลัก</Link>
-      </div>
-      <h1 className="text-center text-3xl my-8">ประวัติการรักษาของฉัน</h1>
+    <>
+      <h1 className="pt-title">ประวัติการรักษาของฉัน</h1>
       {err && <div className="text-center mb-4 text-red-600">{err}</div>}
 
       <div className="max-w-3xl mx-auto space-y-4">
@@ -35,7 +24,7 @@ export default function MyRecords() {
           <div className="bg-white rounded-2xl p-6 text-center">ยังไม่มีประวัติการรักษา</div>
         )}
 
-        {list?.map(r => (
+        {list?.map((r) => (
           <div key={r.id} className="bg-white rounded-2xl overflow-hidden">
             <div className="h-2 bg-[#00C0E8]" />
             <div className="p-5">
@@ -51,7 +40,8 @@ export default function MyRecords() {
                 </div>
                 <button
                   onClick={() => setOpenId(openId === r.id ? null : r.id)}
-                  className="border border-[#00C0E8] text-[#007a96] rounded-xl px-3 text-xs h-8">
+                  className="border border-[#00C0E8] text-[#007a96] rounded-xl px-3 text-xs h-8"
+                >
                   {openId === r.id ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด'}
                 </button>
               </div>
@@ -68,7 +58,9 @@ export default function MyRecords() {
                       <ul className="list-disc ml-6">
                         {r.prescription.map((p, i) => (
                           <li key={i}>
-                            {p.name}{p.dose && ` · ${p.dose}`}{p.duration && ` · ${p.duration}`}
+                            {p.name}
+                            {p.dose && ` · ${p.dose}`}
+                            {p.duration && ` · ${p.duration}`}
                           </li>
                         ))}
                       </ul>
@@ -82,6 +74,6 @@ export default function MyRecords() {
           </div>
         ))}
       </div>
-    </div>
+    </>
   )
 }

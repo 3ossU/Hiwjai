@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { store, svc } from '../api'
+import { useNavigate } from 'react-router-dom'
+import { store, svc } from '../../api'
 import './Booking.css'
 
 const TYPES = [
@@ -16,7 +16,7 @@ export default function Booking() {
   const hasToken = !!store.token()
 
   const [type, setType] = useState('clinic')
-  const [doctors, setDoctors] = useState(null) 
+  const [doctors, setDoctors] = useState(null)
   const [doctor, setDoctor] = useState(null)
   const [date, setDate] = useState('')
   const [slots, setSlots] = useState([])
@@ -24,7 +24,7 @@ export default function Booking() {
   const [onLeave, setOnLeave] = useState(false)
   const [slot, setSlot] = useState('')
   const [note, setNote] = useState('')
-  const [my, setMy] = useState(null) 
+  const [my, setMy] = useState(null)
   const [msg, setMsg] = useState({ ok: true, text: '' })
   const [reload, setReload] = useState(0)
 
@@ -104,14 +104,6 @@ export default function Booking() {
 
   return (
     <div className="bk">
-      <nav>
-        <b>HealthConnect</b>
-        <Link to="/home">HOME</Link>
-        <Link className="on" to="/booking">APPOINTMENT</Link>
-        <Link to="/records">RECORDS</Link>
-        <Link to="/activities">ACTIVITIES</Link>
-      </nav>
-
       <h1>BOOK AN APPOINTMENT</h1>
 
       <div className="wrap">

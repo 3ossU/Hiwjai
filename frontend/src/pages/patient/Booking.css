@@ -11,40 +11,10 @@
   margin: 0;
   font-family: "Inter", "Prompt", sans-serif;
   color: #111;
-  background: linear-gradient(#92e0f0, #f7f7f0 90%);
-  min-height: 100vh;
-}
-.bk nav {
-  margin: 0 auto;
-  position: relative;
-  top: 24px;
-  max-width: 900px;
-  background: var(--ivory);
-  border-radius: 40px;
-  padding: 14px 28px;
-  display: flex;
-  gap: 28px;
-  align-items: center;
-  font-size: 13px;
-}
-.bk nav b {
-  color: var(--cyan);
-  font-style: italic;
-  font-size: 18px;
-  margin-right: auto;
-}
-.bk nav a {
-  color: #111;
-  text-decoration: none;
-}
-.bk nav a.on {
-  background: var(--cyan);
-  padding: 8px 18px;
-  border-radius: 20px;
 }
 .bk h1 {
   text-align: center;
-  margin: 74px 0 30px;
+  margin: 10px 0 30px;
   font-size: 34px;
   font-weight: 500;
 }
