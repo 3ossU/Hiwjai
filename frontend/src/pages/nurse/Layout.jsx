@@ -103,10 +103,10 @@ return (
 
                 {/* ฝั่งขวา */}
                 <div className="flex items-center gap-6">
-                    <button className="relative p-2 text-[#00c0e8] hover:bg-[#00c0e8]/10 rounded-full transition-colors cursor-pointer">
+                    {/* <button className="relative p-2 text-[#00c0e8] hover:bg-[#00c0e8]/10 rounded-full transition-colors cursor-pointer">
                         <i className="bi bi-bell text-xl"></i>
                         <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                    </button>
+                    </button> */}
 
                     {/* profile */}
                     <div className="flex items-center gap-3 cursor-pointer group relative">

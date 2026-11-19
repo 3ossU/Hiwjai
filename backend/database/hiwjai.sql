@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: db:3306
--- Generation Time: Nov 16, 2026 at 07:35 AM
+-- Generation Time: Nov 19, 2026 at 07:23 PM
 -- Server version: 8.0.46
 -- PHP Version: 8.3.30
 
@@ -34,6 +34,13 @@ CREATE TABLE `activity_registrations` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `activity_registrations`
+--
+
+INSERT INTO `activity_registrations` (`id`, `activity_id`, `patient_id`, `created_at`) VALUES
+(1, 1, 2, '2026-11-18 14:56:25');
+
 -- --------------------------------------------------------
 
 --
@@ -63,7 +70,35 @@ INSERT INTO `booking` (`id`, `patient_id`, `doctor_id`, `created_by_nurse_id`, `
 (3, 3, 13, 2, '2026-11-15', '2026-11-15 09:00:00', '2026-11-15 10:00:00', 'scheduled', 'ตรวจติดตามอาการ', '2026-11-15 22:03:27'),
 (4, 4, 16, 2, '2026-11-15', '2026-11-15 09:00:00', '2026-11-15 10:00:00', 'completed', 'ตรวจเสร็จเรียบร้อย', '2026-11-15 22:03:27'),
 (5, 10, 13, 17, '2026-11-15', '2026-11-15 09:00:00', '2026-11-15 10:00:00', 'scheduled', 'นัดตรวจครั้งแรก', '2026-11-15 22:03:27'),
-(6, 6, 1, 17, '2026-11-16', '2026-11-16 09:00:00', '2026-11-16 10:00:00', 'scheduled', 'นัดตรวจติดตามอาการ', '2026-11-15 22:03:27');
+(6, 6, 1, 17, '2026-11-16', '2026-11-16 09:00:00', '2026-11-16 10:00:00', 'scheduled', 'นัดตรวจติดตามอาการ', '2026-11-15 22:03:27'),
+(10, 5, 1, 18, '2026-11-19', '2026-11-19 09:00:00', '2026-11-19 10:00:00', 'cancelled', NULL, '2026-11-19 15:16:23'),
+(11, 4, 16, 18, '2026-11-25', '2026-11-25 09:00:00', '2026-11-25 10:00:00', 'scheduled', NULL, '2026-11-19 15:16:49'),
+(15, 2, 1, 18, '2026-11-25', '2026-11-25 10:00:00', '2026-11-25 11:00:00', 'cancelled', NULL, '2026-11-19 15:42:51'),
+(16, 6, 1, 18, '2026-11-25', '2026-11-25 09:00:00', '2026-11-25 10:00:00', 'cancelled', NULL, '2026-11-19 15:45:12'),
+(17, 6, 13, 18, '2026-11-25', '2026-11-25 09:00:00', '2026-11-25 10:00:00', 'cancelled', NULL, '2026-11-19 15:45:36'),
+(18, 10, 13, 17, '2026-11-19', '2026-11-19 09:00:00', '2026-11-19 10:00:00', 'scheduled', NULL, '2026-11-19 16:03:24'),
+(19, 7, 1, 17, '2026-11-25', '2026-11-25 09:00:00', '2026-11-25 10:00:00', 'cancelled', NULL, '2026-11-19 16:06:32'),
+(20, 6, 1, 18, '2026-11-25', '2026-11-25 09:00:00', '2026-11-25 10:00:00', 'cancelled', NULL, '2026-11-19 16:10:09'),
+(21, 2, 1, 18, '2026-11-25', '2026-11-25 09:00:00', '2026-11-25 10:00:00', 'cancelled', NULL, '2026-11-19 16:11:39'),
+(22, 11, 1, 18, '2026-11-25', '2026-11-25 17:00:00', '2026-11-25 19:00:00', 'cancelled', NULL, '2026-11-19 18:23:12'),
+(23, 1, 1, 2, '2026-11-20', '2026-11-20 09:00:00', '2026-11-20 10:00:00', 'scheduled', 'ตรวจติดตามอาการความดันโลหิต', '2026-11-19 19:20:39'),
+(24, 2, 13, 17, '2026-11-20', '2026-11-20 09:30:00', '2026-11-20 10:30:00', 'scheduled', 'นัดปรึกษาอาการนอนไม่หลับ', '2026-11-19 19:20:39'),
+(25, 3, 16, 18, '2026-11-20', '2026-11-20 10:00:00', '2026-11-20 11:00:00', 'scheduled', 'ตรวจประเมินอาการทั่วไป', '2026-11-19 19:20:39'),
+(26, 4, 1, 2, '2026-11-20', '2026-11-20 13:00:00', '2026-11-20 14:00:00', 'scheduled', 'ตรวจติดตามผลหลังรับยา', '2026-11-19 19:20:39'),
+(27, 5, 13, 17, '2026-11-20', '2026-11-20 14:00:00', '2026-11-20 15:00:00', 'scheduled', 'นัดพูดคุยปรับแผนการดูแล', '2026-11-19 19:20:39'),
+(28, 6, 16, 18, '2026-11-21', '2026-11-21 09:00:00', '2026-11-21 10:00:00', 'scheduled', 'ตรวจติดตามอาการตามนัด', '2026-11-19 19:20:39'),
+(29, 7, 1, 2, '2026-11-21', '2026-11-21 10:30:00', '2026-11-21 11:30:00', 'scheduled', 'นัดประเมินอาการต่อเนื่อง', '2026-11-19 19:20:39'),
+(30, 8, 13, 17, '2026-11-21', '2026-11-21 13:30:00', '2026-11-21 14:30:00', 'scheduled', 'ตรวจติดตามอาการความเครียด', '2026-11-19 19:20:39'),
+(31, 9, 16, 18, '2026-11-21', '2026-11-21 15:00:00', '2026-11-21 16:00:00', 'scheduled', 'ผู้ป่วยขอตรวจซ้ำ', '2026-11-19 19:20:39'),
+(32, 10, 1, 2, '2026-11-22', '2026-11-22 09:00:00', '2026-11-22 10:00:00', 'scheduled', 'นัดตรวจติดตามอาการรายสัปดาห์', '2026-11-19 19:20:39'),
+(33, 11, 13, 17, '2026-11-22', '2026-11-22 10:00:00', '2026-11-22 11:00:00', 'scheduled', 'ตรวจติดตามอาการทั่วไป', '2026-11-19 19:20:39'),
+(34, 12, 16, 18, '2026-11-22', '2026-11-22 13:00:00', '2026-11-22 14:00:00', 'scheduled', 'นัดรับคำแนะนำด้านสุขภาพ', '2026-11-19 19:20:39'),
+(35, 15, 1, 2, '2026-11-22', '2026-11-22 14:30:00', '2026-11-22 15:30:00', 'scheduled', 'ตรวจติดตามอาการครั้งแรก', '2026-11-19 19:20:39'),
+(36, 1, 13, 17, '2026-11-23', '2026-11-23 09:00:00', '2026-11-23 10:00:00', 'scheduled', 'นัดตรวจติดตามผลช่วงเช้า', '2026-11-19 19:20:39'),
+(37, 2, 16, 18, '2026-11-23', '2026-11-23 10:00:00', '2026-11-23 11:00:00', 'scheduled', 'ตรวจประเมินอาการต่อเนื่อง', '2026-11-19 19:20:39'),
+(38, 4, 1, 2, '2026-11-23', '2026-11-23 11:00:00', '2026-11-23 12:00:00', 'scheduled', 'นัดติดตามอาการประจำเดือน', '2026-11-19 19:20:39'),
+(39, 6, 13, 17, '2026-11-23', '2026-11-23 13:30:00', '2026-11-23 14:30:00', 'scheduled', 'ตรวจติดตามอาการช่วงบ่าย', '2026-11-19 19:20:39'),
+(40, 8, 16, 18, '2026-11-23', '2026-11-23 15:00:00', '2026-11-23 16:00:00', 'scheduled', 'นัดตรวจทบทวนอาการ', '2026-11-19 19:20:39');
 
 -- --------------------------------------------------------
 
@@ -86,8 +121,15 @@ CREATE TABLE `home_visits` (
 --
 
 INSERT INTO `home_visits` (`id`, `team_name`, `lead_doctor_id`, `visit_date`, `start_time`, `end_time`, `status`) VALUES
-(1, 'ทีมพยาบาลชุมชน A', 1, '2026-11-15', '2026-11-15 09:00:00', '2026-11-15 12:00:00', 'planned'),
-(2, 'ทีมแพทย์ชุมชน B', 13, '2026-11-15', '2026-11-15 13:00:00', '2026-11-15 16:00:00', 'cancelled');
+(1, 'ทีมพยาบาลชุมชน A', 16, '2026-11-15', '2026-11-15 09:00:00', '2026-11-15 12:00:00', 'planned'),
+(2, 'ทีมแพทย์ชุมชน B', 13, '2026-11-15', '2026-11-15 13:00:00', '2026-11-15 16:00:00', 'cancelled'),
+(3, 'ทีมรักเคะ', 1, '2026-11-19', '2026-11-19 09:00:00', '2026-11-19 12:00:00', 'planned'),
+(6, 'ทีมรักเมะ', 13, '2026-11-20', '2026-11-20 12:00:00', '2026-11-20 15:00:00', 'planned'),
+(7, 'ทีมเยี่ยมบ้านชุมชนโซนเหนือ', 1, '2026-11-20', '2026-11-20 09:00:00', '2026-11-20 12:00:00', 'completed'),
+(8, 'ทีมดูแลผู้ป่วยติดเตียงและผู้สูงอายุ A', 16, '2026-11-21', '2026-11-21 09:00:00', '2026-11-21 12:00:00', 'planned'),
+(9, 'ทีมพยาบาลชุมชนโซนใต้', 13, '2026-11-22', '2026-11-22 09:00:00', '2026-11-22 12:00:00', 'planned'),
+(10, 'ทีมเยี่ยมบ้านติดตามอาการ B', 1, '2026-11-22', '2026-11-22 13:00:00', '2026-11-22 16:00:00', 'planned'),
+(11, 'ทีมสหวิชาชีพเยี่ยมบ้านชุมชน', 16, '2026-11-23', '2026-11-23 09:30:00', '2026-11-23 12:30:00', 'planned');
 
 -- --------------------------------------------------------
 
@@ -108,7 +150,29 @@ CREATE TABLE `home_visit_patients` (
 INSERT INTO `home_visit_patients` (`home_visit_id`, `patient_id`, `status`) VALUES
 (1, 3, 'scheduled'),
 (1, 4, 'scheduled'),
-(2, 11, 'cancelled');
+(2, 11, 'cancelled'),
+(3, 3, 'scheduled'),
+(3, 4, 'scheduled'),
+(3, 7, 'scheduled'),
+(3, 9, 'scheduled'),
+(3, 10, 'scheduled'),
+(6, 5, 'scheduled'),
+(6, 6, 'scheduled'),
+(6, 8, 'scheduled'),
+(7, 1, 'visited'),
+(7, 2, 'visited'),
+(7, 11, 'visited'),
+(8, 3, 'scheduled'),
+(8, 4, 'scheduled'),
+(8, 12, 'scheduled'),
+(9, 7, 'scheduled'),
+(9, 9, 'scheduled'),
+(9, 10, 'scheduled'),
+(10, 5, 'scheduled'),
+(10, 8, 'scheduled'),
+(11, 6, 'scheduled'),
+(11, 11, 'scheduled'),
+(11, 15, 'scheduled');
 
 -- --------------------------------------------------------
 
@@ -124,6 +188,14 @@ CREATE TABLE `hospital_activities` (
   `start_at` datetime NOT NULL,
   `capacity` int NOT NULL DEFAULT '30'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `hospital_activities`
+--
+
+INSERT INTO `hospital_activities` (`id`, `title`, `description`, `location`, `start_at`, `capacity`) VALUES
+(1, 'กลุ่มบำบัดคลายเครียด', 'ฝึกหายใจและผ่อนคลายร่วมกับนักจิตวิทยา', 'ห้องประชุม 2 ชั้น 3', '2026-11-28 10:00:00', 20),
+(2, 'เวิร์กชอปศิลปะบำบัด', 'วาดภาพระบายความรู้สึก ไม่ต้องมีพื้นฐาน', 'ศูนย์กิจกรรม ชั้น 1', '2026-12-05 13:30:00', 15);
 
 -- --------------------------------------------------------
 
@@ -147,10 +219,56 @@ CREATE TABLE `leave` (
 --
 
 INSERT INTO `leave` (`id`, `user_id`, `leave_type`, `start_date`, `end_date`, `reason`, `status`, `created_at`) VALUES
-(1, 2, 'personal', '2026-07-20', '2026-07-21', 'ทำธุระส่วนตัวต่างจังหวัด', 'approved', '2026-11-10 13:26:04'),
-(2, 2, 'annual', '2026-12-25', '2026-12-27', 'ไปเที่ยวปีใหม่', 'pending', '2026-11-10 20:50:39'),
+(1, 2, 'personal', '2026-07-20', '2026-07-21', 'ทำธุระส่วนตัวต่างจังหวัด', 'pending', '2026-11-10 13:26:04'),
+(2, 2, 'annual', '2026-12-25', '2026-12-27', 'ไปเที่ยวปีใหม่', 'rejected', '2026-11-10 20:50:39'),
 (3, 1, 'sick', '2026-12-25', '2026-12-27', 'ลาป่วย', 'approved', '2026-11-14 13:45:12'),
 (4, 17, 'sick', '2026-11-20', '2026-11-21', 'ลาป่วยเนื่องจากเป็นไข้', 'pending', '2026-11-15 22:18:59');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `medical_records`
+--
+
+CREATE TABLE `medical_records` (
+  `id` int NOT NULL,
+  `patient_id` int NOT NULL,
+  `doctor_id` int NOT NULL,
+  `booking_id` int DEFAULT NULL,
+  `visit_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `chief_complaint` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `diagnosis` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `treatment_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `prescription` json DEFAULT NULL,
+  `follow_up_date` date DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `patient_booking_meta`
+--
+
+CREATE TABLE `patient_booking_meta` (
+  `booking_id` int NOT NULL,
+  `appointment_type` enum('clinic','online','home') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'clinic',
+  `addon_note` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `booked_by_user_id` int NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `patient_booking_meta`
+--
+
+INSERT INTO `patient_booking_meta` (`booking_id`, `appointment_type`, `addon_note`, `booked_by_user_id`, `created_at`) VALUES
+(3, 'online', NULL, 4, '2026-11-15 15:53:39'),
+(4, 'home', NULL, 4, '2026-11-15 16:38:47'),
+(5, 'online', NULL, 4, '2026-11-18 15:04:52'),
+(6, 'online', NULL, 4, '2026-11-19 08:05:27'),
+(7, 'online', 'นัดเล่นๆ', 3, '2026-11-19 08:12:13');
 
 -- --------------------------------------------------------
 
@@ -162,32 +280,52 @@ CREATE TABLE `patient_info` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
   `hn` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `age` int NOT NULL,
+  `birth_date` date DEFAULT NULL,
   `weight` decimal(5,2) DEFAULT NULL,
   `height` decimal(5,2) DEFAULT NULL,
-  `blood_group` enum('A','B','AB','O') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `allergies` text COLLATE utf8mb4_unicode_ci,
+  `blood_group` enum('O','O-','O+','A','A-','A+','B','B-','B+','AB','AB-','AB+','UNKNOWN') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'UNKNOWN',
+  `allergies` json DEFAULT NULL,
   `address` text COLLATE utf8mb4_unicode_ci,
-  `emergency_contact` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+  `emergency_contact` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `emergency_contact_relation` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `patient_info`
 --
 
-INSERT INTO `patient_info` (`id`, `user_id`, `hn`, `age`, `weight`, `height`, `blood_group`, `allergies`, `address`, `emergency_contact`) VALUES
-(1, 3, 'HN001', 30, 53.00, 170.00, 'O', 'แพ้ยาเพนิซิลลิน', '123 ถนนสุขุมวิท กรุงเทพฯ', '081-999-9999'),
-(2, 4, 'HN002', 26, 50.00, 165.00, 'A', 'ไม่มี', '45 ถนนพหลโยธิน กรุงเทพฯ', '089-888-8888'),
-(3, 5, 'HN003', 29, 46.00, 165.00, 'O', 'ไม่มี', '101 ถนนสุขุมวิท กรุงเทพฯ', '081-111-1101'),
-(4, 6, 'HN004', 28, 49.00, 170.00, 'A', 'แพ้ฝุ่น', '102 ถนนพระราม 9 กรุงเทพฯ', '081-111-1102'),
-(5, 7, 'HN005', 30, 47.00, 166.00, 'B', 'แพ้ถั่วลิสง', '222 ถนนเพชรเกษม กรุงเทพฯ', '081-111-1103'),
-(6, 8, 'HN006', 31, 48.00, 168.00, 'AB', 'ไม่มี', '88/1 ถนนพระราม 4 กรุงเทพฯ', '081-111-1104'),
-(7, 9, 'HN007', 24, 52.00, 173.00, 'O', 'ไม่มี', '12/5 ซอยทองหล่อ กรุงเทพฯ', '081-111-1105'),
-(8, 10, 'HN008', 28, 52.00, 177.00, 'O', 'แพ้อาหารทะเล', '78 ถนนมิตรภาพ นครราชสีมา', '081-111-1106'),
-(9, 11, 'HN009', 26, 47.00, 170.00, 'A', 'แพ้ยาแอสไพริน', '654 ถนนรังสิต-ปทุมธานี ปทุมธานี', '081-111-1107'),
-(10, 12, 'HN010', 27, 48.00, 165.00, 'A', 'ไม่มี', '333 ถนนสีลม กรุงเทพฯ', '081-111-1108'),
-(11, 14, 'HN011', 28, 70.00, 185.00, 'A', 'แพ้ฝุ่นและเกสรดอกไม้', '99 ถนนรัชดาภิเษก กรุงเทพฯ', '082-222-2202'),
-(12, 15, 'HN012', 23, 64.00, 180.00, 'B', 'ไม่มี', '456 ถนนลาดพร้าว กรุงเทพฯ', '082-222-2203');
+INSERT INTO `patient_info` (`id`, `user_id`, `hn`, `birth_date`, `weight`, `height`, `blood_group`, `allergies`, `address`, `emergency_contact`, `emergency_contact_relation`) VALUES
+(1, 3, 'HN001', '1996-04-12', 53.00, 170.00, 'O', '[{\"name\": \"แพ้ยาเพนิซิลลิน\"}]', '123 ถนนสุขุมวิท กรุงเทพฯ', '081-999-9999', 'มารดา'),
+(2, 4, 'HN002', '2000-11-07', 50.00, 165.00, 'A', '[]', '45 ถนนพหลโยธิน กรุงเทพฯ', '089-888-8888', 'พี่ชาย'),
+(3, 5, 'HN003', '2001-11-25', 46.00, 165.00, 'O', '[]', '101 ถนนสุขุมวิท กรุงเทพฯ', '081-111-1101', 'มารดา'),
+(4, 6, 'HN004', '1998-10-08', 49.00, 170.00, 'A', '[{\"name\": \"แพ้ฝุ่น\"}]', '102 ถนนพระราม 9 กรุงเทพฯ', '081-111-1102', 'น้องสาว'),
+(5, 7, 'HN005', '1996-07-04', 47.00, 166.00, 'B', '[{\"name\": \"แพ้ถั่วลิสง\"}]', '222 ถนนเพชรเกษม กรุงเทพฯ', '081-111-1103', 'คู่สมรส'),
+(6, 8, 'HN006', '1995-05-11', 48.00, 168.00, 'A', '[]', '88/1 ถนนพระราม 4 กรุงเทพฯ', '081-111-1104', 'คู่สมรส'),
+(7, 9, 'HN007', '2002-05-27', 52.00, 173.00, 'O', '[]', '12/5 ซอยทองหล่อ กรุงเทพฯ', '081-111-1105', 'มารดา'),
+(8, 10, 'HN008', '1998-09-09', 52.00, 177.00, 'O', '[{\"name\": \"แพ้อาหารทะเล\"}]', '78 ถนนมิตรภาพ นครราชสีมา', '081-111-1106', 'บิดา'),
+(9, 11, 'HN009', '2000-01-05', 47.00, 170.00, 'A', '[{\"name\": \"แพ้ยาแอสไพริน\"}]', '654 ถนนรังสิต-ปทุมธานี ปทุมธานี', '081-111-1107', 'น้องสาว'),
+(10, 12, 'HN010', '1999-01-14', 48.00, 165.00, 'A', '[]', '333 ถนนสีลม กรุงเทพฯ', '081-111-1108', 'น้องชาย'),
+(11, 14, 'HN011', '1997-12-04', 70.00, 185.00, 'A', '[{\"name\": \"แพ้ฝุ่น\"}]', '99 ถนนรัชดาภิเษก กรุงเทพฯ', '082-222-2202', 'บุตร'),
+(12, 15, 'HN012', '2003-01-31', 64.00, 180.00, 'B', '[]', '456 ถนนลาดพร้าว กรุงเทพฯ', '082-222-2203', 'พี่ชาย'),
+(15, 19, 'HN13', '2004-02-20', 41.00, 159.00, 'A', '[]', '99/12 ถ.สุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110', '081-234-5678', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `treatment_records`
+--
+
+CREATE TABLE `treatment_records` (
+  `id` int NOT NULL,
+  `patient_id` int NOT NULL,
+  `doctor_id` int NOT NULL,
+  `booking_id` int DEFAULT NULL,
+  `visit_date` date NOT NULL,
+  `diagnosis` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `treatment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -231,7 +369,8 @@ INSERT INTO `users` (`id`, `username`, `password_hash`, `first_name`, `last_name
 (15, 'pat_panitan', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Panitan', 'Budkaew', 'male', '086-666-6663', 'https://i.pinimg.com/736x/68/0a/fa/680afa5a4edddf37c1cde15bf22d753c.jpg', 'patient', '2026-11-16 03:09:00', '2026-11-15 20:51:19'),
 (16, 'dr_kajbhunditt', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Kajbhunditt', 'Jaidee', 'male', '086-666-6664', 'https://i.pinimg.com/736x/83/42/23/834223a6fd4ab3ffab269f4c23d10307.jpg', 'doctor', '2026-11-16 03:09:00', '2026-11-15 22:00:07'),
 (17, 'nurse_suchada', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Suchada', 'Sonpan', 'female', '062-345-6789', 'https://i.pinimg.com/1200x/4d/31/18/4d3118a61ebc2058019d44fcb75b3b87.jpg', 'nurse', '2026-11-15 22:12:34', '2026-11-16 07:22:09'),
-(18, 'nurse_thitiya', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Thitiya', 'Jirapornsilp', 'female', '081-234-5678', 'https://i.pinimg.com/736x/e1/22/56/e12256219221dffc353734fe4e7d1a70.jpg', 'head_nurse', '2026-11-16 07:21:47', '2026-11-16 07:24:32');
+(18, 'nurse_thitiya', '$2b$10$SncvReriyCS8vQnOT4zxeury6dz4cKOk6BQLgHFYfn/JiyJF1NObC', 'Thitiya', 'Jirapornsilp', 'female', '081-234-5678', 'https://i.pinimg.com/736x/e1/22/56/e12256219221dffc353734fe4e7d1a70.jpg', 'head_nurse', '2026-11-16 07:21:47', '2026-11-16 07:24:32'),
+(19, 'pat_chanikarn', '$2b$10$bUyt5BPWg0A5.1yIC06msOMOA.756cx3KJDV7UNygZftXj45axF12', 'Chanikarn', 'Tangkabodee', 'female', '091-112-2334', 'https://i.pinimg.com/736x/a6/fe/d4/a6fed451a57624b25595e8bdb4026eaa.jpg', 'patient', '2026-11-19 18:35:13', '2026-11-19 18:35:13');
 
 --
 -- Indexes for dumped tables
@@ -282,12 +421,36 @@ ALTER TABLE `leave`
   ADD KEY `nurse_id` (`user_id`);
 
 --
+-- Indexes for table `medical_records`
+--
+ALTER TABLE `medical_records`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_patient` (`patient_id`),
+  ADD KEY `idx_doctor` (`doctor_id`);
+
+--
+-- Indexes for table `patient_booking_meta`
+--
+ALTER TABLE `patient_booking_meta`
+  ADD PRIMARY KEY (`booking_id`),
+  ADD KEY `idx_booked_by` (`booked_by_user_id`);
+
+--
 -- Indexes for table `patient_info`
 --
 ALTER TABLE `patient_info`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `hn` (`hn`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `treatment_records`
+--
+ALTER TABLE `treatment_records`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_patient` (`patient_id`),
+  ADD KEY `doctor_id` (`doctor_id`),
+  ADD KEY `booking_id` (`booking_id`);
 
 --
 -- Indexes for table `users`
@@ -304,43 +467,55 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_registrations`
 --
 ALTER TABLE `activity_registrations`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `booking`
 --
 ALTER TABLE `booking`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `home_visits`
 --
 ALTER TABLE `home_visits`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `hospital_activities`
 --
 ALTER TABLE `hospital_activities`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `leave`
 --
 ALTER TABLE `leave`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `medical_records`
+--
+ALTER TABLE `medical_records`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `patient_info`
 --
 ALTER TABLE `patient_info`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+
+--
+-- AUTO_INCREMENT for table `treatment_records`
+--
+ALTER TABLE `treatment_records`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- Constraints for dumped tables
@@ -378,6 +553,14 @@ ALTER TABLE `leave`
 --
 ALTER TABLE `patient_info`
   ADD CONSTRAINT `patient_info_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `treatment_records`
+--
+ALTER TABLE `treatment_records`
+  ADD CONSTRAINT `treatment_records_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patient_info` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `treatment_records_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `treatment_records_ibfk_3` FOREIGN KEY (`booking_id`) REFERENCES `booking` (`id`) ON DELETE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

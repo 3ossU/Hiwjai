@@ -6,8 +6,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5002;
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 // เชื่อม db
 const pool = mysql.createPool({
@@ -15,209 +15,290 @@ const pool = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'hiwjai',
-    port: process.env.DB_PORT || 3307, 
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    port: process.env.DB_PORT || 3306
 });
 
-
-// ดูตารางเยี่ยมบ้านพร้อมข้อมูลภายใน
+// ดึงรายการรอบเยี่ยมบ้านทั้งหมด พร้อมรายชื่อผู้ป่วย
 app.get('/api/home-visits', async (req, res) => {
     try {
-
-        // ดึงข้อมูลนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
         const [visits] = await pool.query(`
-            SELECT hv.*, CONCAT(u.first_name, ' ', u.last_name) as lead_doctor_name 
+            SELECT hv.id, hv.team_name, hv.lead_doctor_id, hv.visit_date, hv.start_time, hv.end_time, hv.status,
+                   u.first_name AS doctor_first_name, u.last_name AS doctor_last_name, u.gender AS doctor_gender
             FROM home_visits hv
             LEFT JOIN users u ON hv.lead_doctor_id = u.id
-            ORDER BY hv.visit_date ASC, hv.start_time ASC
+            ORDER BY hv.visit_date ASC, hv.start_time ASC, hv.id ASC
         `);
 
-        const result = [];
+        const [visitPatients] = await pool.query(`
+            SELECT hvp.home_visit_id, hvp.patient_id, hvp.status AS patient_status,
+                   pi.hn, u.first_name, u.last_name, u.avatar_url
+            FROM home_visit_patients hvp
+            JOIN patient_info pi ON hvp.patient_id = pi.id
+            JOIN users u ON pi.user_id = u.id
+        `);
 
-        // ดึงข้อมูลคนไข้ + สถานะการเยี่ยม
-        for (let visit of visits) {
-            const [patients] = await pool.query(`
-                SELECT p.id as patient_id, p.hn, CONCAT(u.first_name, ' ', u.last_name) as patient_name, u.phone_number as phone, p.address, hvp.status as patient_status
-                FROM home_visit_patients hvp
-                JOIN patient_info p ON hvp.patient_id = p.id
-                JOIN users u ON p.user_id = u.id
-                WHERE hvp.home_visit_id = ?
-            `, [visit.id]);
+        const formatted = visits.map((v) => ({
+            ...v,
+            lead_doctor_name: `${v.doctor_first_name || ''} ${v.doctor_last_name || ''}`.trim(),
+            lead_doctor_gender: v.doctor_gender,
+            patients: visitPatients
+                .filter((p) => p.home_visit_id === v.id)
+                .map((p) => ({
+                    patient_id: p.patient_id,
+                    patient_status: p.patient_status,
+                    hn: p.hn,
+                    patient_name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+                    avatar_url: p.avatar_url
+                }))
+        }));
 
-            // ข้อมูลทั้งหมดที่เราจะส่งกลับไปให้ฟ้อนเอน
-            result.push({
-                ...visit, // ข้อมูลนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
-                patients: patients // ข้อมูลคนไข้ + สถานะการเยี่ยม
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            data: result
-        });
+        res.json({ success: true, data: formatted });
     } catch (err) {
         console.error('Error fetching home visits:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 });
 
-
-// สร้างนัดหมายการเยี่ยมบ้านใหม่
+// สร้างรอบเยี่ยมบ้านใหม่
 app.post('/api/home-visits', async (req, res) => {
-    // ประกาศ pool.getConnection 
-    // คล้าย pool.query แต่เพราะเราจะสร้างที effect กับตั้ง 2 table เลยต้องใช้
-    const connection = await pool.getConnection(); 
-    
+    const connection = await pool.getConnection();
     try {
         const { team_name, lead_doctor_id, visit_date, start_time, end_time, patient_ids } = req.body;
 
-        // เช็คข้อมูลพื้นฐานที่ห้ามเป็น null ว่าได้รับมามั้ย ถ้าไม่มีก็ไม่ทำ เชิ่ดใส่เยย
-        if (!team_name || !lead_doctor_id || !visit_date || !start_time || !end_time || !patient_ids || !Array.isArray(patient_ids)) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Missing required fields or patient_ids must be an array.' 
-            });
+        if (!team_name || !lead_doctor_id || !visit_date || !start_time || !end_time || !Array.isArray(patient_ids) || patient_ids.length === 0) {
+            connection.release();
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
         }
 
-        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
-        await connection.beginTransaction(); 
+        // เช็คว่าหมอมีรอบเยี่ยมบ้านอื่นที่เวลาทับกันไหม
+        const [visitConflicts] = await connection.query(
+            `SELECT id, team_name FROM home_visits
+             WHERE lead_doctor_id = ?
+               AND status <> 'cancelled'
+               AND start_time < ?
+               AND end_time > ?`,
+            [lead_doctor_id, end_time, start_time]
+        );
+        if (visitConflicts.length > 0) {
+            connection.release();
+            return res.status(409).json({ success: false, error: 'แพทย์มีรอบเยี่ยมบ้านอื่นในช่วงเวลานี้แล้ว' });
+        }
 
-        // ข้อมูลฝั่งนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
-        // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้
-        const insertVisitQuery = `
-            INSERT INTO home_visits (team_name, lead_doctor_id, visit_date, start_time, end_time, status)
-            VALUES (?, ?, ?, ?, ?, 'planned')
-        `;
+        // เช็คว่าหมอมีนัดหมายในตาราง booking ที่เวลาทับกันไหม
+        const [bookingConflicts] = await connection.query(
+            `SELECT id FROM booking
+             WHERE doctor_id = ?
+               AND status <> 'cancelled'
+               AND start_time < ?
+               AND end_time > ?`,
+            [lead_doctor_id, end_time, start_time]
+        );
+        if (bookingConflicts.length > 0) {
+            connection.release();
+            return res.status(409).json({ success: false, error: 'แพทย์มีตารางนัดหมายผู้ป่วยในช่วงเวลานี้แล้ว' });
+        }
 
-        // set ลง db จริง ๆ โดยเอาข้อมูลที่รับจากฟ้อนเอนไปแปะใน ? ด้านบน
-        const [visitResult] = await connection.query(insertVisitQuery, [
-            team_name,
-            lead_doctor_id,
-            visit_date,
-            start_time,
-            end_time
-        ]);
+        await connection.beginTransaction();
 
-        // ตัว id (Auto-Increment) ที่พึ่งสร้างใหม่สด ๆ จากตาราง home_visits 
-        // เก็บมันไว้ในชื่อ homeVisitId แล้วเอา fk ที่ตาราง home_visit_patients ด้านล่าง
-        const homeVisitId = visitResult.insertId;
+        const [result] = await connection.query(
+            `INSERT INTO home_visits (team_name, lead_doctor_id, visit_date, start_time, end_time, status)
+             VALUES (?, ?, ?, ?, ?, 'planned')`,
+            [team_name.trim(), lead_doctor_id, visit_date, start_time, end_time]
+        );
 
-        // ข้อมูลฝั่งคนไข้ + สถานะการเยี่ยม
+        const visitId = result.insertId;
+
         for (const patientId of patient_ids) {
-            const insertPatientQuery = `
-                INSERT INTO home_visit_patients (home_visit_id, patient_id, status)
-                VALUES (?, ?, 'scheduled')
-            `;
-
-            // สั่ง db ทำงาน
-            await connection.query(insertPatientQuery, [homeVisitId, patientId]);
+            await connection.query(
+                `INSERT INTO home_visit_patients (home_visit_id, patient_id, status)
+                 VALUES (?, ?, 'scheduled')`,
+                [visitId, patientId]
+            );
         }
 
-        // ยืนยันกับระบบ Transaction ว่าให้ save สิ่งที่ db ทำงานไป
-        await connection.commit(); 
-        connection.release(); // ปิดการทำงาน pool.getConnection 
+        await connection.commit();
+        connection.release();
 
-        res.status(201).json({
-            success: true,
-            message: 'Home visit created successfully',
-            homeVisitId: homeVisitId // ส่ง id ของการนัดหมายใหม่ไปด้วย
-        });
-
+        res.status(201).json({ success: true, visitId });
     } catch (err) {
-        await connection.rollback(); 
-        connection.release(); // ปิดการทำงาน pool.getConnection 
+        await connection.rollback();
+        connection.release();
         console.error('Error creating home visit:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 });
 
-
-// อัพเดตสถานะการนัดเยี่ยม
-app.patch('/api/home-visits/:id/patients/:patientId/status', async (req, res) => {
+// แก้ไขรอบเยี่ยมบ้าน (เช่น เปลี่ยนแพทย์หัวหน้าทีม / แก้ชื่อทีม / แก้วันเวลา / รายชื่อผู้ป่วย)
+app.put('/api/home-visits/:id', async (req, res) => {
+    const connection = await pool.getConnection();
     try {
-        const { id, patientId } = req.params; // รับจาก url
+        const { id } = req.params;
+        const { team_name, lead_doctor_id, visit_date, start_time, end_time, status, patient_ids } = req.body;
+
+        const [existingRows] = await connection.query(`SELECT * FROM home_visits WHERE id = ?`, [id]);
+        if (existingRows.length === 0) {
+            connection.release();
+            return res.status(404).json({ success: false, error: 'Home visit not found' });
+        }
+
+        const existing = existingRows[0];
+        const nextTeamName = (team_name || existing.team_name).trim();
+        const nextDoctorId = lead_doctor_id || existing.lead_doctor_id;
+        const nextVisitDate = visit_date || existing.visit_date;
+        const nextStartTime = start_time || existing.start_time;
+        const nextEndTime = end_time || existing.end_time;
+        const nextStatus = status || existing.status;
+
+        if (nextStatus !== 'cancelled') {
+            // เช็คว่าหมอมีรอบเยี่ยมบ้านอื่น (ที่ไม่ใช่รอบนี้) ที่เวลาทับกันไหม
+            const [visitConflicts] = await connection.query(
+                `SELECT id, team_name FROM home_visits
+                 WHERE lead_doctor_id = ?
+                   AND id <> ?
+                   AND status <> 'cancelled'
+                   AND start_time < ?
+                   AND end_time > ?`,
+                [nextDoctorId, id, nextEndTime, nextStartTime]
+            );
+            if (visitConflicts.length > 0) {
+                connection.release();
+                return res.status(409).json({ success: false, error: 'แพทย์มีรอบเยี่ยมบ้านอื่นในช่วงเวลานี้แล้ว' });
+            }
+
+            // เช็คว่าหมอมีนัดหมายในตาราง booking ที่เวลาทับกันไหม
+            const [bookingConflicts] = await connection.query(
+                `SELECT id FROM booking
+                 WHERE doctor_id = ?
+                   AND status <> 'cancelled'
+                   AND start_time < ?
+                   AND end_time > ?`,
+                [nextDoctorId, nextEndTime, nextStartTime]
+            );
+            if (bookingConflicts.length > 0) {
+                connection.release();
+                return res.status(409).json({ success: false, error: 'แพทย์มีตารางนัดหมายผู้ป่วยในช่วงเวลานี้แล้ว' });
+            }
+        }
+
+        await connection.beginTransaction();
+
+        await connection.query(
+            `UPDATE home_visits
+             SET team_name = ?, lead_doctor_id = ?, visit_date = ?, start_time = ?, end_time = ?, status = ?
+             WHERE id = ?`,
+            [nextTeamName, nextDoctorId, nextVisitDate, nextStartTime, nextEndTime, nextStatus, id]
+        );
+
+        if (Array.isArray(patient_ids) && patient_ids.length > 0) {
+            await connection.query(`DELETE FROM home_visit_patients WHERE home_visit_id = ?`, [id]);
+            for (const patientId of patient_ids) {
+                await connection.query(
+                    `INSERT INTO home_visit_patients (home_visit_id, patient_id, status)
+                     VALUES (?, ?, 'scheduled')`,
+                    [id, patientId]
+                );
+            }
+        }
+
+        await connection.commit();
+        connection.release();
+
+        res.json({ success: true, message: 'อัปเดตรอบเยี่ยมบ้านสำเร็จ' });
+    } catch (err) {
+        await connection.rollback();
+        connection.release();
+        console.error('Error updating home visit:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+// อัปเดตสถานะทั้งรอบเยี่ยมบ้านเป็นเสร็จสิ้น (completed) และอัปเดตผู้ป่วยที่ยังรอเยี่ยมให้เป็นเยี่ยมแล้ว (visited)
+app.patch('/api/home-visits/:id/complete', async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        const { id } = req.params;
+
+        const [existingRows] = await connection.query(`SELECT id, status FROM home_visits WHERE id = ?`, [id]);
+        if (existingRows.length === 0) {
+            connection.release();
+            return res.status(404).json({ success: false, error: 'Home visit not found' });
+        }
+
+        if (existingRows[0].status === 'cancelled') {
+            connection.release();
+            return res.status(400).json({ success: false, error: 'Cannot complete a cancelled home visit' });
+        }
+
+        await connection.beginTransaction();
+
+        await connection.query(
+            `UPDATE home_visits SET status = 'completed' WHERE id = ?`,
+            [id]
+        );
+
+        await connection.query(
+            `UPDATE home_visit_patients
+             SET status = 'visited'
+             WHERE home_visit_id = ? AND status = 'scheduled'`,
+            [id]
+        );
+
+        await connection.commit();
+        connection.release();
+
+        res.json({ success: true, message: 'อัปเดตสถานะทั้งรอบเยี่ยมบ้านสำเร็จ' });
+    } catch (err) {
+        await connection.rollback();
+        connection.release();
+        console.error('Error completing home visit:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+// อัปเดตสถานะผู้ป่วยรายคนในรอบเยี่ยมบ้าน
+app.patch('/api/home-visits/:visitId/patients/:patientId/status', async (req, res) => {
+    try {
+        const { visitId, patientId } = req.params;
         const { status } = req.body;
 
-        // status ที่ส่งมาต้องเป็น 3 ค่านี้เท่านั้น ทะลึ่งเป็นค่าอื่นไม่แก้ให้หรอกจ้า
-        if (!['scheduled', 'visited', 'cancelled'].includes(status)) {
-            return res.status(400).json({ success: false, error: 'Invalid status value' });
-        }
+        const [result] = await pool.query(
+            `UPDATE home_visit_patients
+             SET status = ?
+             WHERE home_visit_id = ? AND patient_id = ?`,
+            [status, visitId, patientId]
+        );
 
-        // เปลี่ยน status ใน db
-        const [result] = await pool.query(`
-            UPDATE home_visit_patients 
-            SET status = ? 
-            WHERE home_visit_id = ? AND patient_id = ?
-        `, [status, id, patientId]);
-
-        // ดูว่านัดหมายกันจริงมั้ย ถ้าไม่มีก็ไม่ทำเหมือนกันย่ะ
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, error: 'Home visit or patient record not found' });
+            return res.status(404).json({ success: false, error: 'Patient in visit not found' });
         }
 
-        res.status(200).json({
-            success: true,
-            message: `Patient ID ${patientId} status updated to '${status}' successfully`
-        });
-
+        res.json({ success: true, message: 'อัปเดตสถานะผู้ป่วยสำเร็จ' });
     } catch (err) {
         console.error('Error updating patient status:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 });
 
-
-// ยกเลิกการนัดเยี่ยมบ้านคนไข้
+// ยกเลิกรอบเยี่ยมบ้าน
 app.delete('/api/home-visits/:id', async (req, res) => {
-    // ประกาศ pool.getConnection 
-    // คล้าย pool.query แต่เพราะเราจะสร้างที effect กับตั้ง 2 table เลยต้องใช้
-    const connection = await pool.getConnection();
-
     try {
-        const { id } = req.params; // ดึง id การนัดหมายมา
+        const { id } = req.params;
+        const [result] = await pool.query(
+            `UPDATE home_visits SET status = 'cancelled' WHERE id = ?`,
+            [id]
+        );
 
-        // เอา id ที่รับมาไปหาดูว่ามีใน db มั้ย
-        const [existing] = await connection.query('SELECT * FROM home_visits WHERE id = ?', [id]);
-        
-        if (existing.length === 0) {
-            connection.release(); // คืน connection ก่อน return
+        if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, error: 'Home visit not found' });
         }
 
-        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
-        await connection.beginTransaction();
-
-        // แก้สถานะการนัดหมายเป็น cancelled ก็คือยกเลิกไป
-        await connection.query('UPDATE home_visits SET status = ? WHERE id = ?', ['cancelled', id]);
-
-        // แก้สถานะให้คนไข้ในนัดนี้สถานะเป็น cancelled หมด
-        await connection.query(
-            'UPDATE home_visit_patients SET status = ? WHERE home_visit_id = ? AND status = ?', 
-            ['cancelled', id, 'scheduled'] // แก้แค่คนที่สถานะเป็นรอเยี่ยม
-        );
-
-        
-        // ยืนยันกับระบบ Transaction ว่าให้ save สิ่งที่ db ทำงานไป
-        await connection.commit(); 
-        connection.release(); // ปิดการทำงาน pool.getConnection 
-
-
-        res.status(200).json({
-            success: true,
-            message: `Home visit ID ${id} has been cancelled successfully`
-        });
-
+        res.json({ success: true, message: 'ยกเลิกรอบเยี่ยมบ้านสำเร็จ' });
     } catch (err) {
-        await connection.rollback();
-        connection.release(); // ปิดการทำงาน pool.getConnection 
         console.error('Error cancelling home visit:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 });
 
-
 app.listen(PORT, () => {
-    console.log(`Visit Home Service is running on port ${PORT}`);
+    console.log(`Home Visit Service is running on port ${PORT}`);
 });

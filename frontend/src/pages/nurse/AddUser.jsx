@@ -2,6 +2,28 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 
+// คำนวณอายุจากวันเดือนปีเกิด (YYYY-MM-DD หรือ ISO string) แบบแม่นยำตามเดือน/วัน
+const calculateAgeFromBirthDate = (birthDateStr) => {
+    if (!birthDateStr) return '';
+    const datePart = String(birthDateStr).slice(0, 10);
+    const parts = datePart.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return '';
+
+    const [year, month, day] = parts;
+    const birth = new Date(year, month - 1, day);
+    if (Number.isNaN(birth.getTime())) return '';
+
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+
+    return age >= 0 ? age : '';
+};
+
 const AddUser = ({ user }) => {
     // ตัวแปรสำหรับเปลี่ยนหน้า
     const navigate = useNavigate();
@@ -9,6 +31,15 @@ const AddUser = ({ user }) => {
     // State สำหรับเช็คว่ากำลังบันทึกข้อมูลอยู่ไหม และเก็บข้อความ Error (ถ้ามี)
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+
+    // State สำหรับ Modal แจ้งเตือน (แทน alert)
+    const [alertModal, setAlertModal] = useState({
+        isOpen: false,
+        type: 'success', // 'success' | 'error' | 'warning'
+        title: '',
+        message: '',
+        redirectTo: null
+    });
 
     // State หลักที่เก็บข้อมูลทั้งหมดจากฟอร์ม
     const [formData, setFormData] = useState({
@@ -20,7 +51,7 @@ const AddUser = ({ user }) => {
         avatar_url: '',
         hn: '',
         gender: 'female',
-        age: '',
+        birth_date: '',
         weight: '',
         height: '',
         blood_group: 'O',
@@ -28,6 +59,24 @@ const AddUser = ({ user }) => {
         address: '',
         emergency_contact: ''
     });
+
+    const showAlert = (type, title, message, redirectTo = null) => {
+        setAlertModal({
+            isOpen: true,
+            type,
+            title,
+            message,
+            redirectTo
+        });
+    };
+
+    const handleCloseAlert = () => {
+        const target = alertModal.redirectTo;
+        setAlertModal(prev => ({ ...prev, isOpen: false, redirectTo: null }));
+        if (target) {
+            navigate(target);
+        }
+    };
 
     // ฟังก์ชันทำงานทุกครั้งที่มีการพิมพ์ในช่องกรอกข้อมูล
     const handleChange = (e) => {
@@ -53,16 +102,20 @@ const AddUser = ({ user }) => {
             // ส่งข้อมูลไปที่ Backend (patient-service)
             const res = await axios.post('http://localhost:5004/api/patients', {
                 ...formData,
+                birth_date: formData.birth_date || null,
                 // แปลงค่าตัวเลขให้เป็น Number ก่อนส่ง (ถ้ามีการกรอกมา)
-                age: formData.age ? parseInt(formData.age) : null,
                 weight: formData.weight ? parseFloat(formData.weight) : null,
                 height: formData.height ? parseFloat(formData.height) : null,
             });
 
-            // ถ้าบันทึกสำเร็จ ให้แจ้งเตือนและพากลับไปหน้าข้อมูลคนไข้
+            // ถ้าบันทึกสำเร็จ ให้เปิด Modal แจ้งเตือนและพากลับไปหน้าข้อมูลคนไข้
             if (res.data.success) {
-                alert('เพิ่มผู้ป่วยใหม่สำเร็จ!');
-                navigate('/nurse/patientinfos');
+                showAlert(
+                    'success',
+                    'เพิ่มผู้ป่วยใหม่สำเร็จ',
+                    'สร้างบัญชีและบันทึกข้อมูลผู้ป่วยเรียบร้อยแล้ว',
+                    '/nurse/patientinfos'
+                );
             }
         } catch (error) {
             console.error("Error adding patient:", error);
@@ -72,6 +125,8 @@ const AddUser = ({ user }) => {
             setIsSubmitting(false); // ปิดสถานะกำลังบันทึก
         }
     };
+
+    const calculatedAge = calculateAgeFromBirthDate(formData.birth_date);
 
     return (
         <div className="max-w-5xl mx-auto pb-10">
@@ -112,6 +167,11 @@ const AddUser = ({ user }) => {
                         <p className="text-sm text-[#00c0e8] font-semibold bg-[#00c0e8]/10 inline-block px-3 py-1 rounded-full mt-2">
                             HN: {formData.hn || '---'}
                         </p>
+                        {calculatedAge !== '' && (
+                            <p className="text-xs text-gray-500 mt-2">
+                                อายุ: <span className="font-semibold text-gray-700">{calculatedAge} ปี</span>
+                            </p>
+                        )}
                     </div>
 
                     {/* ช่องกรอก URL รูปโปรไฟล์ */}
@@ -129,7 +189,7 @@ const AddUser = ({ user }) => {
                                 className="w-full px-3 py-2 bg-ivory border border-[#00c0e8]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00c0e8]/50 text-xs"
                             />
                             <p className="text-[10px] text-gray-400 mt-1">
-                                * ถ้าไม่ใส่ระบบจะใช้รูปสุ่มให้
+                                - ถ้าไม่ใส่ระบบจะใช้รูปสุ่มให้
                             </p>
                         </div>
                     </div>
@@ -185,8 +245,16 @@ const AddUser = ({ user }) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">อายุ (ปี)</label>
-                                    <input type="number" name="age" value={formData.age} onChange={handleChange} className="w-full px-4 py-2.5 bg-ivory border border-[#00c0e8]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00c0e8]/50 text-sm" />
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                        วันเดือนปีเกิด {calculatedAge !== '' ? `(อายุ ${calculatedAge} ปี)` : ''}
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="birth_date"
+                                        value={formData.birth_date}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2.5 bg-ivory border border-[#00c0e8]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00c0e8]/50 text-sm"
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">เบอร์โทรศัพท์</label>
@@ -217,10 +285,19 @@ const AddUser = ({ user }) => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">กรุ๊ปเลือด</label>
                                     <select name="blood_group" value={formData.blood_group} onChange={handleChange} className="w-full px-4 py-2.5 bg-ivory border border-[#00c0e8]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00c0e8]/50 text-sm">
-                                        <option value="A">A</option>
-                                        <option value="B">B</option>
-                                        <option value="AB">AB</option>
                                         <option value="O">O</option>
+                                        <option value="O-">O-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="A">A</option>
+                                        <option value="A-">A-</option>
+                                        <option value="A+">A+</option>
+                                        <option value="B">B</option>
+                                        <option value="B-">B-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="AB">AB</option>
+                                        <option value="AB-">AB-</option>
+                                        <option value="AB+">AB+</option>
+                                        <option value="UNKNOWN">UNKNOWN</option>
                                     </select>
                                 </div>
                                 <div>
@@ -259,6 +336,48 @@ const AddUser = ({ user }) => {
                     </form>
                 </div>
             </div>
+
+            {/* Modal แจ้งเตือนผลลัพธ์ (แทน alert) */}
+            {alertModal.isOpen && (
+                <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-6 md:pl-64">
+                    <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-[#00c0e8]/20 text-center">
+                        <div
+                            className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl ${
+                                alertModal.type === 'success'
+                                    ? 'bg-[#00c0e8]/15 text-[#00c0e8]'
+                                    : alertModal.type === 'warning'
+                                    ? 'bg-amber-100 text-amber-600'
+                                    : 'bg-red-100 text-red-600'
+                            }`}
+                        >
+                            <i
+                                className={`bi ${
+                                    alertModal.type === 'success'
+                                        ? 'bi-check-circle-fill'
+                                        : alertModal.type === 'warning'
+                                        ? 'bi-exclamation-circle-fill'
+                                        : 'bi-x-circle-fill'
+                                }`}
+                            ></i>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">{alertModal.title}</h3>
+                        <p className="text-sm text-gray-500 mb-6">{alertModal.message}</p>
+                        <button
+                            type="button"
+                            onClick={handleCloseAlert}
+                            className={`w-full py-2.5 px-4 rounded-xl text-white font-bold text-sm transition-colors shadow-md ${
+                                alertModal.type === 'success'
+                                    ? 'bg-[#00c0e8] hover:bg-[#00a8cc] shadow-[#00c0e8]/30'
+                                    : alertModal.type === 'warning'
+                                    ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30'
+                                    : 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
+                            }`}
+                        >
+                            ตกลง
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -5,7 +5,23 @@ const ApproveLeave = () => {
   const [pendingLeaves, setPendingLeaves] = useState([]);
   const [historyLeaves, setHistoryLeaves] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending'); 
+  const [activeTab, setActiveTab] = useState('pending');
+
+  // State สำหรับ Modal ยืนยันและแจ้งเตือนผลลัพธ์
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    id: null,
+    status: null,
+    title: '',
+    message: '',
+  });
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    type: 'success', // 'success' | 'error'
+    title: '',
+    message: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -29,19 +45,59 @@ const ApproveLeave = () => {
     fetchData();
   }, []);
 
-  const handleUpdateStatus = async (id, status) => {
-    const confirmMsg = status === 'approved' ? 'ยืนยันการอนุมัติใบลานี้?' : 'ยืนยันการปฏิเสธใบลานี้?';
-    if (!window.confirm(confirmMsg)) return;
+  // เปิด Modal ยืนยันก่อนอัปเดตสถานะใบลา
+  const handleUpdateStatus = (id, status) => {
+    const isApprove = status === 'approved';
+    setConfirmModal({
+      isOpen: true,
+      id,
+      status,
+      title: isApprove ? 'ยืนยันการอนุมัติใบลา' : 'ยืนยันการปฏิเสธใบลา',
+      message: isApprove
+        ? 'ยืนยันการอนุมัติใบลานี้? ระบบจะอัปเดตสถานะและย้ายรายการไปยังประวัติ'
+        : 'ยืนยันการปฏิเสธใบลานี้? ระบบจะอัปเดตสถานะและย้ายรายการไปยังประวัติ',
+    });
+  };
 
+  // ดำเนินการส่งคำขออัปเดตสถานะเมื่อกดยืนยันใน Modal
+  const confirmUpdateStatus = async () => {
+    const { id, status } = confirmModal;
+    if (!id || !status) return;
+
+    setIsSubmitting(true);
     try {
       const res = await axios.patch(`http://localhost:5003/api/leaves/${id}/status`, { status });
+      setConfirmModal((prev) => ({ ...prev, isOpen: false }));
       if (res.data.success) {
-        alert(`ทำรายการสำเร็จ`);
-        fetchData(); 
+        setAlertModal({
+          isOpen: true,
+          type: 'success',
+          title: 'ทำรายการสำเร็จ',
+          message:
+            status === 'approved'
+              ? 'อนุมัติใบลาเรียบร้อยแล้วครับ'
+              : 'บันทึกการปฏิเสธใบลาเรียบร้อยแล้วครับ',
+        });
+        fetchData();
+      } else {
+        setAlertModal({
+          isOpen: true,
+          type: 'error',
+          title: 'ทำรายการไม่สำเร็จ',
+          message: res.data.message || 'เกิดข้อผิดพลาด',
+        });
       }
     } catch (error) {
       console.error("อัปเดตสถานะไม่สำเร็จ:", error);
-      alert('เกิดข้อผิดพลาด');
+      setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        message: 'เกิดข้อผิดพลาด',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -226,6 +282,90 @@ const ApproveLeave = () => {
         )}
 
       </div>
+
+
+      {/* Modal ยืนยันการอนุมัติ / ปฏิเสธ */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-[#00c0e8]/20 text-center">
+            <div
+              className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl ${
+                confirmModal.status === 'approved'
+                  ? 'bg-green-100 text-green-600'
+                  : 'bg-red-100 text-red-600'
+              }`}
+            >
+              <i
+                className={`bi ${
+                  confirmModal.status === 'approved'
+                    ? 'bi-question-circle-fill'
+                    : 'bi-exclamation-triangle-fill'
+                }`}
+              ></i>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{confirmModal.title}</h3>
+            <p className="text-sm text-gray-500 mb-6">{confirmModal.message}</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={confirmUpdateStatus}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-white font-bold text-sm transition-colors shadow-md disabled:opacity-50 ${
+                  confirmModal.status === 'approved'
+                    ? 'bg-green-500 hover:bg-green-600 shadow-green-500/30'
+                    : 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
+                }`}
+              >
+                {isSubmitting ? 'กำลังบันทึก...' : 'ยืนยัน'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal แจ้งเตือนผลลัพธ์ (แทน alert) */}
+      {alertModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-[#00c0e8]/20 text-center">
+            <div
+              className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl ${
+                alertModal.type === 'success'
+                  ? 'bg-[#00c0e8]/15 text-[#00c0e8]'
+                  : 'bg-red-100 text-red-600'
+              }`}
+            >
+              <i
+                className={`bi ${
+                  alertModal.type === 'success'
+                    ? 'bi-check-circle-fill'
+                    : 'bi-x-circle-fill'
+                }`}
+              ></i>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{alertModal.title}</h3>
+            <p className="text-sm text-gray-500 mb-6">{alertModal.message}</p>
+            <button
+              type="button"
+              onClick={() => setAlertModal((prev) => ({ ...prev, isOpen: false }))}
+              className={`w-full py-2.5 px-4 rounded-xl text-white font-bold text-sm transition-colors shadow-md ${
+                alertModal.type === 'success'
+                  ? 'bg-[#00c0e8] hover:bg-[#00a8cc] shadow-[#00c0e8]/30'
+                  : 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
+              }`}
+            >
+              ตกลง
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
