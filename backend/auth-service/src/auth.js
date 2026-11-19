@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from './db.js';
@@ -12,9 +13,28 @@ if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
 
 const ACCESS_TTL = '15m';
 const REFRESH_TTL = '7d';
+const RESET_TTL = '10m';
 
 // กันเดารหัสผ่านคับ
 const DUMMY_HASH = bcrypt.hashSync('dummy-password', 10);
+
+// สุ่มรหัสชั่วคราวด้วย crypto (ปลอดภัยกว่า Math.random)
+const genTempPassword = () => crypto.randomBytes(6).toString('base64url') + '#7';
+
+// จำกัดจำนวนครั้งที่ลองต่อ key (ใน memory พอสำหรับเครื่องเดียว)
+const attempts = new Map();
+function tooMany(key, max = 5, windowMs = 15 * 60 * 1000) {
+  const now = Date.now();
+  const rec = attempts.get(key);
+  if (!rec || now > rec.reset) {
+    attempts.set(key, { count: 1, reset: now + windowMs });
+    return false;
+  }
+  rec.count += 1;
+  return rec.count > max;
+}
+
+const digits = (s) => String(s || '').replace(/\D/g, '');
 
 // สร้างข้อมูลที่ใส่ใน token และข้อมูล user ที่ส่งกลับ frontend
 async function buildSession(u) {
@@ -48,6 +68,10 @@ const signRefresh = (userId) =>
   jwt.sign({ id: userId, type: 'refresh' }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: REFRESH_TTL,
   });
+
+// token รีเซ็ตรหัส: ผูกกับ password_hash ปัจจุบัน
+// พอเปลี่ยนรหัสแล้ว hash เปลี่ยน token เดิมจะใช้ซ้ำไม่ได้ (ใช้ได้ครั้งเดียว)
+const resetSecret = (u) => process.env.JWT_REFRESH_SECRET + u.password_hash;
 
 // อันนี้ส่วนของ Login
 router.post('/login', async (req, res) => {
@@ -116,6 +140,79 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+// ลืมรหัสผ่าน ขั้นที่ 1: ยืนยันตัวตนด้วย Username + HN + เบอร์โทรที่ลงทะเบียนไว้กับโรงพยาบาล
+// ถ้าตรงทั้งหมดจะได้ resetToken อายุ 10 นาที (ไม่ต้อง login)
+router.post('/forgot-password', async (req, res) => {
+  const { username, hn, phone_number } = req.body || {};
+  if (!username || !hn || !phone_number) {
+    return res.status(400).json({ error: 'กรุณากรอก Username, HN และเบอร์โทรให้ครบ' });
+  }
+
+  // จำกัดการเดาข้อมูล ต่อ IP + username
+  if (tooMany(`forgot:${req.ip}:${username}`)) {
+    return res.status(429).json({ error: 'ลองหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT u.* FROM users u
+         JOIN patient_info p ON p.user_id = u.id
+        WHERE u.username = ? AND p.hn = ? AND u.role = 'patient'`,
+      [username, hn]
+    );
+    const u = rows[0];
+
+    // ข้อความเดียวกันทุกกรณี ไม่บอกว่าผิดที่ช่องไหน กันคนเดา username
+    if (!u || digits(u.phone_number) !== digits(phone_number)) {
+      return res.status(400).json({ error: 'ข้อมูลไม่ตรงกับที่ลงทะเบียนไว้ กรุณาติดต่อเจ้าหน้าที่' });
+    }
+
+    const resetToken = jwt.sign({ id: u.id, type: 'reset' }, resetSecret(u), {
+      expiresIn: RESET_TTL,
+    });
+    res.json({ resetToken });
+  } catch (error) {
+    console.error('Forgot password Error:', error);
+    res.status(500).json({ error: 'เซิร์ฟเวอร์มีปัญหา' });
+  }
+});
+
+// ลืมรหัสผ่าน ขั้นที่ 2: ตั้งรหัสใหม่ด้วย resetToken
+router.post('/reset-password', async (req, res) => {
+  const { resetToken, newPassword } = req.body || {};
+  if (!resetToken || !newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: 'รหัสใหม่ต้องยาวอย่างน้อย 8 ตัวอักษร' });
+  }
+
+  const invalid = () =>
+    res.status(400).json({ error: 'ลิงก์รีเซ็ตหมดอายุหรือไม่ถูกต้อง กรุณาเริ่มใหม่' });
+
+  try {
+    // อ่าน id จาก token ก่อน (ยังไม่เชื่อ) เพื่อไปเอา hash มาประกอบ secret
+    const peek = jwt.decode(resetToken);
+    if (!peek?.id) return invalid();
+
+    const [rows] = await db.query(`SELECT * FROM users WHERE id = ?`, [peek.id]);
+    const u = rows[0];
+    if (!u) return invalid();
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, resetSecret(u));
+    } catch {
+      return invalid();
+    }
+    if (decoded.type !== 'reset') return invalid();
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [hash, u.id]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Reset password Error:', error);
+    res.status(500).json({ error: 'เซิร์ฟเวอร์มีปัญหา' });
+  }
+});
+
 // ใช้เปลี่ยนรหัสชั่วคราวที่โรงพยาบาลตั้งให้
 router.post('/change-password', requireAuth, async (req, res) => {
   const { oldPassword, newPassword } = req.body || {};
@@ -138,9 +235,32 @@ router.post('/change-password', requireAuth, async (req, res) => {
   }
 });
 
+// เจ้าหน้าที่รีเซ็ตรหัสให้ผู้ป่วย (กรณีผู้ป่วยยืนยันตัวตนเองไม่ได้ เช่น เปลี่ยนเบอร์)
+// ส่งรหัสชั่วคราวกลับครั้งเดียว ให้เจ้าหน้าที่แจ้งผู้ป่วย
+router.post('/staff/reset-password', requireAuth, requireRole('admin', 'nurse', 'head_nurse'), async (req, res) => {
+  const { username } = req.body || {};
+  if (!username) return res.status(400).json({ error: 'กรุณาระบุ Username ผู้ป่วย' });
+
+  try {
+    const [rows] = await db.query(
+      `SELECT id FROM users WHERE username = ? AND role = 'patient'`,
+      [username]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'ไม่พบผู้ป่วย' });
+
+    const tempPassword = genTempPassword();
+    const hash = await bcrypt.hash(tempPassword, 10);
+    await db.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [hash, rows[0].id]);
+    res.json({ ok: true, tempPassword });
+  } catch (error) {
+    console.error('Staff reset Error:', error);
+    res.status(500).json({ error: 'เซิร์ฟเวอร์มีปัญหา' });
+  }
+});
+
 // สร้างบัญชีผู้ป่วย เฉพาะเจ้าหน้าที่ที่ login แล้ว
 // ผู้ป่วยสมัครเองไม่ได้ เจ้าหน้าที่โรงพยาบาลเป็นผู้สร้างให้
-router.post('/staff/create-patient', requireAuth, requireRole('admin', 'nurse'), async (req, res) => {
+router.post('/staff/create-patient', requireAuth, requireRole('admin', 'nurse', 'head_nurse'), async (req, res) => {
   const {
     username, first_name, last_name, phone_number,
     hn, gender, age, weight, height, blood_group,
@@ -151,9 +271,8 @@ router.post('/staff/create-patient', requireAuth, requireRole('admin', 'nurse'),
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบ' });
   }
 
-  // สุ่มรหัสชั่วคราว ส่งกลับครั้งเดียวให้เจ้าหน้าที่แจ้งผู้ป่วย ไม่เก็บ plain text 
-  const tempPassword = Math.random().toString(36).slice(2, 6) +
-    Math.random().toString(36).slice(2, 6).toUpperCase() + '#7';
+  // สุ่มรหัสชั่วคราว ส่งกลับครั้งเดียวให้เจ้าหน้าที่แจ้งผู้ป่วย ไม่เก็บ plain text
+  const tempPassword = genTempPassword();
   const hash = await bcrypt.hash(tempPassword, 10);
 
   const conn = await db.getConnection();
