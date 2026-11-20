@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from './db.js';
 import { requireAuth, requireRole } from './middleware.js';
+import { checkPassword, clientIp, getSettings, isBlocked, lockedMinutesLeft, recordFailure, recordSuccess, logEvent } from './security.js';
 
 const router = express.Router();
 
@@ -58,14 +59,55 @@ router.post('/login', async (req, res) => {
   }
 
   try {
+    const ip = clientIp(req);
+
+    // IP ที่ admin บล็อกไว้
+    if (await isBlocked(ip)) {
+      await logEvent({ actor: username, action: 'ปฏิเสธการเข้าสู่ระบบจาก IP ที่ถูกบล็อก', category: 'security', level: 'danger', ip });
+      return res.status(403).json({ error: 'ไม่สามารถเข้าถึงระบบจากเครือข่ายนี้ได้ กรุณาติดต่อผู้ดูแลระบบ' });
+    }
+
     const [rows] = await db.query(`SELECT * FROM users WHERE username = ?`, [username]);
     const u = rows[0];
+
+    // บัญชีถูกล็อกชั่วคราวจากการใส่รหัสผิดซ้ำ
+    if (u) {
+      const mins = await lockedMinutesLeft(u.id);
+      if (mins > 0) {
+        await logEvent({ userId: u.id, actor: u.username, action: 'พยายามเข้าสู่ระบบขณะบัญชีถูกล็อก', level: 'warning', ip });
+        return res.status(423).json({ error: `บัญชีถูกล็อกชั่วคราว กรุณาลองใหม่ในอีก ${mins} นาที` });
+      }
+    }
 
     // เทียบรหัสกับ hash ใน DB ไม่มีรหัสฮาร์ดโค้ดในโค้ด
     const ok = await bcrypt.compare(password, u?.password_hash || DUMMY_HASH);
     if (!u || !ok) {
+      if (u) {
+        const s = await getSettings();
+        const { attempts, locked } = await recordFailure(u, s);
+        await logEvent({
+          userId: u.id,
+          actor: u.username,
+          action: locked
+            ? `เข้าสู่ระบบล้มเหลว ${s.max_attempts} ครั้ง — ล็อกบัญชี ${s.lock_minutes} นาที`
+            : `เข้าสู่ระบบล้มเหลว (ครั้งที่ ${attempts})`,
+          level: locked ? 'danger' : 'warning',
+          ip,
+        });
+      } else {
+        await logEvent({ action: `เข้าสู่ระบบล้มเหลว: ไม่พบ username "${String(username).slice(0, 50)}"`, level: 'warning', ip });
+      }
       return res.status(401).json({ error: 'Username หรือรหัสผ่านไม่ถูกต้อง' });
     }
+
+    // ตรวจหลังรหัสถูกแล้ว เพื่อไม่บอกคนนอกว่าบัญชีนี้มีอยู่จริง
+    if (u.status === 'suspended') {
+      await logEvent({ userId: u.id, actor: u.username, action: 'บัญชีที่ถูกระงับพยายามเข้าสู่ระบบ', category: 'security', level: 'warning', ip });
+      return res.status(403).json({ error: 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ' });
+    }
+
+    await recordSuccess(u.id);
+    await logEvent({ userId: u.id, actor: u.username, action: 'เข้าสู่ระบบ', ip });
 
     const { payload, user } = await buildSession(u);
 
@@ -103,6 +145,14 @@ router.post('/refresh', async (req, res) => {
     const u = rows[0];
     if (!u) return res.status(401).json({ error: 'ไม่พบผู้ใช้' });
 
+    // ถูกระงับ / ถูกบล็อก IP ระหว่างใช้งาน → ไม่ต่ออายุ session
+    if (u.status === 'suspended') {
+      return res.status(401).json({ error: 'บัญชีนี้ถูกระงับการใช้งาน' });
+    }
+    if (await isBlocked(clientIp(req))) {
+      return res.status(401).json({ error: 'ไม่สามารถเข้าถึงระบบจากเครือข่ายนี้ได้' });
+    }
+
     const { payload, user } = await buildSession(u);
 
     res.json({
@@ -119,11 +169,15 @@ router.post('/refresh', async (req, res) => {
 // ใช้เปลี่ยนรหัสชั่วคราวที่โรงพยาบาลตั้งให้
 router.post('/change-password', requireAuth, async (req, res) => {
   const { oldPassword, newPassword } = req.body || {};
-  if (!oldPassword || !newPassword || newPassword.length < 8) {
-    return res.status(400).json({ error: 'รหัสใหม่ต้องยาวอย่างน้อย 8 ตัวอักษร' });
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ error: 'กรุณากรอกรหัสผ่านเดิมและรหัสผ่านใหม่' });
   }
 
   try {
+    // ใช้นโยบายรหัสผ่านที่ admin ตั้งไว้ (ความยาวขั้นต่ำ / ต้องมีสัญลักษณ์)
+    const pwErr = checkPassword(newPassword, await getSettings());
+    if (pwErr) return res.status(400).json({ error: pwErr });
+
     const [rows] = await db.query(`SELECT * FROM users WHERE id = ?`, [req.user.id]);
     const u = rows[0];
     const ok = await bcrypt.compare(oldPassword, u?.password_hash || DUMMY_HASH);
