@@ -3,10 +3,12 @@ import db from './db.js';
 // ฟังก์ชันด้านความปลอดภัยของการ login (ใช้ตาราง/คอลัมน์จาก database/admin_migration.sql)
 // ทุกฟังก์ชันเขียนแบบ "ล้มแบบนุ่ม" ถ้ายังไม่ได้รัน migration ระบบ login เดิมยังใช้ได้ตามปกติ
 
-const DEFAULTS = { lock_after_fails: 1, max_attempts: 5, lock_minutes: 15 };
+const DEFAULTS = { lock_after_fails: 1, max_attempts: 5, lock_minutes: 15, min_password_length: 8, require_symbol: 1 };
 
+// เชื่อ X-Forwarded-For เฉพาะเมื่ออยู่หลัง reverse proxy ที่ไว้ใจได้ (TRUST_PROXY=1)
+// ไม่งั้น client ปลอม header นี้เพื่อหลบการบล็อก IP ได้
 export const clientIp = (req) => {
-  const fwd = req.headers['x-forwarded-for'];
+  const fwd = process.env.TRUST_PROXY === '1' ? req.headers['x-forwarded-for'] : null;
   const ip = (typeof fwd === 'string' && fwd.split(',')[0].trim()) || req.socket?.remoteAddress || '';
   return ip.replace(/^::ffff:/, '').slice(0, 45);
 };
@@ -24,9 +26,22 @@ const safe = async (fn, fallback) => {
 
 export const getSettings = () =>
   safe(async () => {
-    const [rows] = await db.query('SELECT lock_after_fails, max_attempts, lock_minutes FROM security_settings WHERE id = 1');
+    const [rows] = await db.query(
+      'SELECT lock_after_fails, max_attempts, lock_minutes, min_password_length, require_symbol FROM security_settings WHERE id = 1'
+    );
     return rows[0] || DEFAULTS;
   }, DEFAULTS);
+
+// นโยบายรหัสผ่านเดียวกับ admin-service (policy.js) — คืนข้อความ error หรือ null ถ้าผ่าน
+export function checkPassword(pw, s) {
+  if (typeof pw !== 'string' || pw.length < s.min_password_length) {
+    return `รหัสผ่านต้องมีอย่างน้อย ${s.min_password_length} ตัวอักษร`;
+  }
+  if (s.require_symbol && !/[^A-Za-z0-9]/.test(pw)) {
+    return 'รหัสผ่านต้องมีสัญลักษณ์อย่างน้อย 1 ตัว เช่น ! @ # $';
+  }
+  return null;
+}
 
 export const isBlocked = (ip) =>
   safe(async () => {
