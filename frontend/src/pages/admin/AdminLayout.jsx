@@ -20,6 +20,7 @@ const menuItems = [
   { path: '/admin/dashboard', label: 'รายงานภาพรวม', icon: 'bi-grid-1x2' },
   { path: '/admin/accounts', label: 'บัญชีและ Role', icon: 'bi-people' },
   { path: '/admin/counselors', label: 'ผู้ให้คำปรึกษา', icon: 'bi-chat-heart' },
+  { path: '/admin/activities', label: 'จัดการกิจกรรม', icon: 'bi-calendar-event' },
   { path: '/admin/security', label: 'บันทึกและความปลอดภัย', icon: 'bi-shield-check' },
 ];
 

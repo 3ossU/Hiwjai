@@ -3,7 +3,8 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { logout } from '../../api';
 import { Modal, Toast } from '../admin/AdminUI';
 import { btn } from '../admin/adminStyles';
-import { loadState, saveState, clone, pickNextHn, DEFAULT_STATE, STORAGE_KEY } from './cashierData';
+import { pickNextHn } from './cashierData';
+import { cashierApi } from './cashierApi';
 
 const menuItems = [
   { path: '/cashier/billing', label: 'คำนวณค่าบริการ', icon: 'bi-receipt' },
@@ -24,29 +25,16 @@ const CashierLayout = ({ user }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
 
-  // ข้อมูลคิว/รายการชำระ (เก็บใน localStorage)
-  const [data, setData] = useState(loadState);
-  const [selectedHn, setSelectedHn] = useState(() => pickNextHn(data.patients));
+  // ข้อมูลคิวและรายการชำระจาก Backend API
+  const [data, setData] = useState({ patients: [], transactions: [] });
+  const [loading, setLoading] = useState(true);
+  const [selectedHn, setSelectedHn] = useState(null);
 
-  // ค่าล่าสุดเสมอ (ใช้หลัง await กล่องยืนยัน กันใช้ข้อมูลเก่า)
   const dataRef = useRef(data);
   const getData = useCallback(() => dataRef.current, []);
   useEffect(() => {
     dataRef.current = data;
-    saveState(data);
   }, [data]);
-
-  // เปิดหลายแท็บ: แท็บอื่นบันทึกเมื่อไร ให้แท็บนี้โหลดตาม ไม่งั้นจะเขียนทับกันจนรายการหาย
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key !== STORAGE_KEY) return;
-      const next = loadState();
-      dataRef.current = next;
-      setData(next);
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
 
   // toast
   const [toast, setToast] = useState(null);
@@ -58,8 +46,33 @@ const CashierLayout = ({ user }) => {
   }, []);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
+  // โหลดข้อมูลล่าสุดจาก Backend
+  const refreshData = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setLoading(true);
+        const [patients, transactions] = await Promise.all([
+          cashierApi.getPendingBills(),
+          cashierApi.getTodayTransactions(),
+        ]);
+        setData({ patients, transactions });
+        setSelectedHn((prev) =>
+          prev && patients.some((p) => p.hn === prev) ? prev : pickNextHn(patients)
+        );
+      } catch (err) {
+        showToast(err.message || 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์การเงินได้', 'error');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [showToast]
+  );
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
   // กล่องยืนยัน — askConfirm({ title, message, okText }) คืน Promise<boolean>
-  // ถ้ามีกล่องค้างอยู่แล้ว ให้กล่องเดิมตอบ "ยกเลิก" ก่อน (กัน Promise ค้าง/กดซ้ำ)
   const [confirmReq, setConfirmReq] = useState(null);
   const askConfirm = useCallback(
     (opts) =>
@@ -89,19 +102,9 @@ const CashierLayout = ({ user }) => {
     };
   }, [profileOpen]);
 
-  const resetDemo = async () => {
-    const ok = await askConfirm({
-      title: 'รีเซ็ตข้อมูลทดสอบ',
-      message: 'ต้องการรีเซ็ตข้อมูลทดสอบทั้งหมดกลับเป็นค่าเริ่มต้นหรือไม่?',
-      okText: 'รีเซ็ต',
-      danger: true,
-    });
-    if (!ok) return;
-    const fresh = clone(DEFAULT_STATE);
-    setData(fresh);
-    setSelectedHn(pickNextHn(fresh.patients));
-    navigate('/cashier/billing');
-    showToast('รีเซ็ตข้อมูลทดสอบเรียบร้อยแล้ว');
+  const handleRefresh = async () => {
+    await refreshData();
+    showToast('อัปเดตข้อมูลล่าสุดจากระบบแล้ว');
   };
 
   const handleLogout = () => {
@@ -144,12 +147,12 @@ const CashierLayout = ({ user }) => {
 
         <div className="p-4 space-y-3">
           <button
-            onClick={resetDemo}
-            title="รีเซ็ตข้อมูลทดสอบ"
-            className="w-full py-2.5 rounded-2xl border border-dashed border-slate-300 text-xs text-slate-400 hover:border-rose-300 hover:text-rose-500 transition cursor-pointer"
+            onClick={handleRefresh}
+            title="รีเฟรชข้อมูลคิว"
+            className="w-full py-2.5 rounded-2xl border border-dashed border-sky-300 text-xs text-sky-600 hover:bg-sky-50 transition cursor-pointer"
           >
-            <i className="bi bi-arrow-counterclockwise"></i>
-            {open && <span className="ml-1.5">รีเซ็ตข้อมูลทดสอบ</span>}
+            <i className="bi bi-arrow-clockwise"></i>
+            {open && <span className="ml-1.5">รีเฟรชข้อมูลคิว</span>}
           </button>
           {open && (
             <div className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-sky-400 to-cyan-300 text-white">
@@ -207,10 +210,10 @@ const CashierLayout = ({ user }) => {
                 </div>
                 <div className="py-2 md:hidden">
                   <button
-                    onClick={() => { setProfileOpen(false); resetDemo(); }}
+                    onClick={() => { setProfileOpen(false); handleRefresh(); }}
                     className="w-full flex items-center gap-3 px-5 py-2.5 text-sm text-slate-600 hover:bg-sky-50 cursor-pointer"
                   >
-                    <i className="bi bi-arrow-counterclockwise"></i> รีเซ็ตข้อมูลทดสอบ
+                    <i className="bi bi-arrow-clockwise"></i> รีเฟรชข้อมูลคิว
                   </button>
                 </div>
                 <div className="border-t border-sky-50 py-2">
@@ -238,7 +241,11 @@ const CashierLayout = ({ user }) => {
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
-            <Outlet context={{ me: user, data, setData, getData, selectedHn, setSelectedHn, showToast, askConfirm }} />
+            {loading ? (
+              <div className="py-20 text-center text-sky-600 font-medium">กำลังโหลดข้อมูลการเงินจากเซิร์ฟเวอร์...</div>
+            ) : (
+              <Outlet context={{ me: user, data, setData, getData, refreshData, selectedHn, setSelectedHn, showToast, askConfirm }} />
+            )}
           </div>
         </main>
       </div>

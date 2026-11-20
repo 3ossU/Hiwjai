@@ -6,9 +6,10 @@ import { btn, inputCls } from '../admin/adminStyles';
 import {
   METHODS, CASH, PROMPTPAY, CARD, CARD_BRANDS, PROMPTPAY_ACCOUNT, isTestPromptPay,
   promptPayPayload, methodDetailText, pickNextHn,
-  fmt2, fmtMoney, parseMoney, round2, clone, nowTime, todayLabel, nextReceiptNo,
+  fmt2, fmtMoney, parseMoney, round2, todayLabel,
   consultTotal, pharmacyTotal, serviceTotal, grandTotal,
 } from './cashierData';
+import { cashierApi } from './cashierApi';
 
 // ตอนพิมพ์ ให้เห็นเฉพาะใบเสร็จ
 const PRINT_CSS = `
@@ -252,7 +253,7 @@ const PaymentForm = ({ patient, onPay, onError, busy }) => {
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter') return;
                     e.preventDefault();
-                    if (!e.repeat) submit(); // กดค้างไม่ให้ยิงซ้ำ
+                    if (!e.repeat) submit();
                   }}
                   inputMode="decimal"
                   autoComplete="off"
@@ -288,9 +289,9 @@ const PaymentForm = ({ patient, onPay, onError, busy }) => {
 };
 
 const Payment = () => {
-  const { data, setData, getData, selectedHn, setSelectedHn, showToast, askConfirm } = useOutletContext();
+  const { data, setData, selectedHn, setSelectedHn, showToast, askConfirm } = useOutletContext();
   const navigate = useNavigate();
-  const [paidTx, setPaidTx] = useState(null); // รายการที่เพิ่งชำระ (แสดงใบเสร็จจริง)
+  const [paidTx, setPaidTx] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const patient = data.patients.find((x) => x.hn === selectedHn) || null;
@@ -314,45 +315,39 @@ const Payment = () => {
       message: `ยืนยันการชำระเงิน ${fmt2(total)} ฿ ผ่าน ${method} ?${extra}`,
       okText: 'ยืนยันชำระเงิน',
     });
-    setBusy(false);
-    if (!ok) return;
-
-    // อ่านข้อมูลล่าสุดหลังกดยืนยัน (ระหว่างนั้นแท็บอื่นอาจบันทึกไปแล้ว)
-    const latest = getData();
-    if (!latest.patients.some((x) => x.hn === patient.hn)) {
-      return showToast('รายการนี้ถูกชำระไปแล้ว (อาจจากหน้าต่างอื่น)', 'error');
+    if (!ok) {
+      setBusy(false);
+      return;
     }
 
-    const seq = latest.receiptSeq + 1;
-    const tx = {
-      time: nowTime(),
-      dateLabel: todayLabel(),
-      receiptNo: nextReceiptNo(seq),
-      name: patient.name,
-      hn: patient.hn,
-      method,
-      detail,
-      amount: total,
-      received,
-      change,
-      items: clone(patient.items),
-      sent: false,
-    };
-    const remaining = latest.patients.filter((x) => x.hn !== patient.hn);
+    try {
+      const res = await cashierApi.submitPayment({
+        invoiceId: patient.invoiceId,
+        method,
+        received,
+        detail,
+      });
 
-    setData((prev) => ({
-      ...prev,
-      receiptSeq: Math.max(prev.receiptSeq, seq),
-      transactions: [tx, ...prev.transactions],
-      patients: prev.patients.filter((x) => x.hn !== tx.hn),
-    }));
-    setSelectedHn(pickNextHn(remaining));
-    setPaidTx(tx);
-    showToast(
-      method === CASH
-        ? `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | เงินทอน ${fmt2(change)} ฿`
-        : `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | ${method}`
-    );
+      const tx = res.transaction;
+      const remaining = data.patients.filter((x) => x.hn !== patient.hn);
+
+      setData((prev) => ({
+        ...prev,
+        transactions: [tx, ...prev.transactions],
+        patients: prev.patients.filter((x) => x.hn !== tx.hn),
+      }));
+      setSelectedHn(pickNextHn(remaining));
+      setPaidTx(tx);
+      showToast(
+        method === CASH
+          ? `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | เงินทอน ${fmt2(tx.change)} ฿`
+          : `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | ${method}`
+      );
+    } catch (err) {
+      showToast(err.message || 'บันทึกการชำระเงินไม่สำเร็จ', 'error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const nextPayment = () => {
