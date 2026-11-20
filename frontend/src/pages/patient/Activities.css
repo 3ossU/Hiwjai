@@ -1,0 +1,122 @@
+.ac-center { text-align: center; }
+
+.ac-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.ac-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+.ac-wide { grid-column: 1 / -1; }
+.ac-state { grid-column: 1 / -1; text-align: center; color: #5b6b72; padding: 24px; }
+
+/* การ์ด */
+.ac-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 20px;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 4px 14px rgba(0, 192, 232, 0.12);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.ac-item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background: linear-gradient(#00c0e8, #7fe3f5);
+}
+.ac-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 192, 232, 0.22);
+}
+
+/* ส่วนหัว: กล่องวันที่ + ชื่อ */
+.ac-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding-left: 6px;
+}
+.ac-date {
+  flex-shrink: 0;
+  width: 56px;
+  padding: 6px 0;
+  border-radius: 14px;
+  background: #e3f7fb;
+  color: #007a96;
+  text-align: center;
+  line-height: 1.1;
+}
+.ac-date b { display: block; font-size: 22px; font-weight: 700; }
+.ac-date span { font-size: 12px; font-weight: 600; }
+
+.ac-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+/* รายละเอียด */
+.ac-body { padding: 14px 0 0 6px; flex: 1; }
+.ac-meta {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #5b6b72;
+}
+.ac-desc {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #333;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ส่วนท้าย */
+.ac-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px 0 0 6px;
+  border-top: 1px dashed #d7eef3;
+}
+.ac-foot .pt-btn { white-space: nowrap; }
+
+/* แถบความจุ */
+.ac-cap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ac-cap-bar {
+  width: 90px;
+  height: 6px;
+  border-radius: 6px;
+  background: #e8f1f3;
+  overflow: hidden;
+}
+.ac-cap-bar i {
+  display: block;
+  height: 100%;
+  background: #00c0e8;
+  border-radius: 6px;
+}
+.ac-cap-bar.full i { background: #e0594a; }
+
+@media (max-width: 480px) {
+  .ac-grid { grid-template-columns: 1fr; }
+}

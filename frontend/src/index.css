@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ivory: #fffff0;
+  --color-brand: #00c1e8;
+}

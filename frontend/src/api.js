@@ -1,0 +1,131 @@
+const BASE = 'http://localhost:3001/api';
+
+export const store = {
+  save(accessToken, refreshToken, user) {
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+  token() {
+    return localStorage.getItem('token');
+  },
+  refreshToken() {
+    return localStorage.getItem('refreshToken');
+  },
+  user() {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  },
+  clear() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  },
+};
+
+// กันหลาย request ที่ได้ 401 พร้อมกันแล้วยิง refresh ซ้ำหลายรอบ
+let refreshing = null;
+
+function refreshTokens() {
+  if (!refreshing) {
+    refreshing = (async () => {
+      const rt = store.refreshToken();
+      if (!rt) throw new Error('no refresh token');
+
+      const res = await fetch(BASE + '/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!res.ok) throw new Error('refresh failed');
+
+      const d = await res.json();
+      store.save(d.accessToken, d.refreshToken, d.user);
+    })().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+}
+
+function request(path, { method, body }) {
+  const token = store.token();
+  return fetch(BASE + path, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function api(path, { method = 'GET', body } = {}) {
+  let res = await request(path, { method, body });
+
+  const skipRefresh = path.startsWith('/auth/login') || path.startsWith('/auth/refresh');
+
+  // access token หมดอายุ ขอใหม่แล้วลองยิงซ้ำ 1 ครั้ง
+  if (res.status === 401 && !skipRefresh && store.refreshToken()) {
+    try {
+      await refreshTokens();
+      res = await request(path, { method, body });
+    } catch {
+      store.clear();
+      window.location.reload(); // กลับหน้า Login
+      throw new Error('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    }
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+  return data;
+}
+
+export function logout() {
+  store.clear();
+}
+
+// ส่วนของเรา (เพิ่มต่อท้าย ไม่แก้โค้ดด้านบน) ใช้เรียก service ของเรา: booking 3002 / record 3003 / activity 3004 ใช้ token และระบบ refresh เดิมของ auth ด้านบน
+
+export const SERVICES = {
+  booking: 'http://localhost:3002',
+  record: 'http://localhost:3003',
+  activity: 'http://localhost:3004',
+  admin: 'http://localhost:4001', // admin ใช้ช่วง 4xxx แยกจาก patient/auth (3xxx) และ nurse (5xxx)
+};
+
+export async function svc(service, path, { method = 'GET', body } = {}) {
+  const call = () => {
+    const token = store.token();
+    return fetch(SERVICES[service] + path, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  };
+
+  let res = await call();
+
+  // access token หมดอายุ ขอใหม่ผ่าน refreshTokens() เดิม แล้วลองซ้ำ 1 ครั้ง
+  if (res.status === 401 && store.refreshToken()) {
+    try {
+      await refreshTokens();
+      res = await call();
+    } catch {
+      store.clear();
+      window.location.reload();
+      throw new Error('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    }
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || 'เกิดข้อผิดพลาด');
+  return data;
+}
