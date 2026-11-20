@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { svc } from '../../api';
 
-// เรียก admin-service (port 3005) — ใช้ token + ระบบ refresh เดิมใน api.js
+// เรียก admin-service (port 4001) — ใช้ token + ระบบ refresh เดิมใน api.js
 export const adminApi = (path, opts) => svc('admin', `/api/admin${path}`, opts);
 
 // โหลดข้อมูลจาก API พร้อม state loading / error / reload
@@ -21,7 +21,7 @@ export function useAdminData(path) {
         })
         .catch((e) => {
           if (!isAlive()) return;
-          setError(e.message === 'Failed to fetch' ? 'เชื่อมต่อ admin-service (port 3005) ไม่ได้' : e.message);
+          setError(e.message === 'Failed to fetch' ? 'เชื่อมต่อ admin-service (port 4001) ไม่ได้' : e.message);
         })
         .finally(() => isAlive() && setLoading(false)),
     [path]

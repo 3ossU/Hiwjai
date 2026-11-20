@@ -111,7 +111,8 @@ const Security = () => {
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     a.download = `hiwjai-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
-    URL.revokeObjectURL(a.href);
+    // revoke ทันทีบางเบราว์เซอร์ (เช่น Firefox) จะยกเลิกการดาวน์โหลด
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
 
   // คะแนนความปลอดภัยคร่าวๆ จากการตั้งค่า

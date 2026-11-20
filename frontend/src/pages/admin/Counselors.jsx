@@ -36,7 +36,8 @@ const Counselors = () => {
     setFormError('');
   };
   const openEdit = (c) => {
-    const filled = Object.fromEntries(Object.keys(emptyForm).map((k) => [k, c[k] ?? emptyForm[k]]));
+    // ค่าที่ว่างใน DB ให้ว่างในฟอร์ม (ไม่เติมค่า default ของฟอร์มเพิ่ม ไม่งั้นกดบันทึกแล้วข้อมูลจะถูกเปลี่ยนเอง)
+    const filled = Object.fromEntries(Object.keys(emptyForm).map((k) => [k, c[k] ?? '']));
     setForm({ ...filled, password: '' });
     setEditing(c);
     setFormError('');
@@ -216,12 +217,14 @@ const Counselors = () => {
           <Field label="เลขใบอนุญาตประกอบวิชาชีพ" required><input value={form.license} onChange={set('license')} className={inputCls} placeholder="เช่น ว.12345" /></Field>
           <Field label="ความเชี่ยวชาญ">
             <select value={form.specialty} onChange={set('specialty')} className={inputCls}>
+              <option value="">ยังไม่ระบุ</option>
               {[...new Set([...SPECIALTIES, form.specialty].filter(Boolean))].map((s) => <option key={s}>{s}</option>)}
             </select>
           </Field>
           <Field label="เบอร์โทร"><input value={form.phone_number} onChange={set('phone_number')} className={inputCls} /></Field>
           <Field label="เพศ">
-            <select value={form.gender || 'other'} onChange={set('gender')} className={inputCls}>
+            <select value={form.gender} onChange={set('gender')} className={inputCls}>
+              <option value="">ไม่ระบุ</option>
               <option value="female">หญิง</option>
               <option value="male">ชาย</option>
               <option value="other">อื่นๆ</option>
