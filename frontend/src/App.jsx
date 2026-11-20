@@ -29,11 +29,31 @@ import Accounts from './pages/admin/Accounts'
 import Counselors from './pages/admin/Counselors'
 import Security from './pages/admin/Security'
 
+// cashier
+import CashierLayout from './pages/cashier/CashierLayout'
+import CashierBilling from './pages/cashier/Billing'
+import CashierPayment from './pages/cashier/Payment'
+import CashierFinance from './pages/cashier/Finance'
+
 const isNurse = (u) => u?.role === 'nurse' || u?.role === 'head_nurse'
 const isAdmin = (u) => u?.role === 'admin'
+const isCashier = (u) => u?.role === 'cashier'
 
 // หน้าแรกของแต่ละ role
-const homeOf = (u) => (isAdmin(u) ? '/admin/dashboard' : isNurse(u) ? '/nurse/dashboard' : '/patient/home')
+const homeOf = (u) =>
+  isAdmin(u) ? '/admin/dashboard'
+  : isNurse(u) ? '/nurse/dashboard'
+  : isCashier(u) ? '/cashier/billing'
+  : '/patient/home'
+
+const CashierRoute = () => {
+  const user = store.user()
+
+  if (!user) return <Navigate to="/login" replace />
+  if (!isCashier(user)) return <Navigate to={homeOf(user)} replace />
+
+  return <Outlet />
+}
 
 const AdminRoute = () => {
   const user = store.user()
@@ -58,7 +78,7 @@ const PatientRoute = () => {
 
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'patient') {
-    return <Navigate to={isNurse(user) || isAdmin(user) ? homeOf(user) : '/login'} replace />
+    return <Navigate to={isNurse(user) || isAdmin(user) || isCashier(user) ? homeOf(user) : '/login'} replace />
   }
 
   return <Outlet />
@@ -122,6 +142,16 @@ function App() {
           <Route path="accounts" element={<Accounts />} />
           <Route path="counselors" element={<Counselors />} />
           <Route path="security" element={<Security />} />
+        </Route>
+      </Route>
+
+      {/* cashier */}
+      <Route element={<CashierRoute />}>
+        <Route path="/cashier" element={<CashierLayout user={user} />}>
+          <Route index element={<Navigate to="billing" replace />} />
+          <Route path="billing" element={<CashierBilling />} />
+          <Route path="payment" element={<CashierPayment />} />
+          <Route path="finance" element={<CashierFinance />} />
         </Route>
       </Route>
 
