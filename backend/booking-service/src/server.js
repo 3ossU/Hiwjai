@@ -88,6 +88,48 @@ app.post('/api/bookings', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing required booking fields' });
         }
 
+        const normalizedAppointmentDate = String(appointment_date).slice(0, 10);
+
+        // เช็คว่าหมอมีวันลาที่อนุมัติแล้วตรงกับวันที่นัดหมายไหม
+        const [doctorLeaveConflicts] = await pool.query(
+            `SELECT l.id, l.leave_type, l.start_date, l.end_date
+             FROM \`leave\` l
+             WHERE l.user_id = ?
+               AND l.status = 'approved'
+               AND ? BETWEEN DATE_FORMAT(l.start_date, '%Y-%m-%d') AND DATE_FORMAT(l.end_date, '%Y-%m-%d')`,
+            [doctor_id, normalizedAppointmentDate]
+        );
+        console.log('DEBUG DOCTOR LEAVE:', { doctor_id, normalizedAppointmentDate, conflicts: doctorLeaveConflicts });
+        if (doctorLeaveConflicts.length > 0) {
+            return res.status(409).json({ success: false, error: 'แพทย์มีวันลาตรงกับวันที่นัดหมาย' });
+        }
+
+        // เช็คว่าหมอมีนัดหมายในตาราง booking ที่เวลาทับกันไหม
+        const [bookingConflicts] = await pool.query(
+            `SELECT id FROM booking
+             WHERE doctor_id = ?
+               AND status <> 'cancelled'
+               AND start_time < ?
+               AND end_time > ?`,
+            [doctor_id, end_time, start_time]
+        );
+        if (bookingConflicts.length > 0) {
+            return res.status(409).json({ success: false, error: 'แพทย์มีตารางนัดหมายอื่นในช่วงเวลานี้แล้ว' });
+        }
+
+        // เช็คว่าหมอมีตารางออกเยี่ยมบ้านใน home_visits ที่วันเวลาทับกันไหม
+        const [visitConflicts] = await pool.query(
+            `SELECT id, team_name FROM home_visits
+             WHERE lead_doctor_id = ?
+               AND status <> 'cancelled'
+               AND start_time < ?
+               AND end_time > ?`,
+            [doctor_id, end_time, start_time]
+        );
+        if (visitConflicts.length > 0) {
+            return res.status(409).json({ success: false, error: 'แพทย์ติดตารางเยี่ยมบ้านในช่วงเวลานี้แล้ว' });
+        }
+
         // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้
         const query = `
             INSERT INTO booking (patient_id, doctor_id, created_by_nurse_id, appointment_date, start_time, end_time, status, note)
