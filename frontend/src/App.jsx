@@ -22,13 +22,33 @@ import PatientInfos from './pages/nurse/PatientInfos'
 import AddUser from './pages/nurse/AddUser'
 import ApproveLeave from './pages/nurse/ApproveLeave'
 
+// admin
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminDashboard from './pages/admin/Dashboard'
+import Accounts from './pages/admin/Accounts'
+import Counselors from './pages/admin/Counselors'
+import Security from './pages/admin/Security'
+
 const isNurse = (u) => u?.role === 'nurse' || u?.role === 'head_nurse'
+const isAdmin = (u) => u?.role === 'admin'
+
+// หน้าแรกของแต่ละ role
+const homeOf = (u) => (isAdmin(u) ? '/admin/dashboard' : isNurse(u) ? '/nurse/dashboard' : '/patient/home')
+
+const AdminRoute = () => {
+  const user = store.user()
+
+  if (!user) return <Navigate to="/login" replace />
+  if (!isAdmin(user)) return <Navigate to={homeOf(user)} replace />
+
+  return <Outlet />
+}
 
 const NurseRoute = () => {
   const user = store.user()
 
   if (!user) return <Navigate to="/login" replace />
-  if (!isNurse(user)) return <Navigate to="/patient/home" replace />
+  if (!isNurse(user)) return <Navigate to={homeOf(user)} replace />
 
   return <Outlet />
 }
@@ -38,7 +58,7 @@ const PatientRoute = () => {
 
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'patient') {
-    return <Navigate to={isNurse(user) ? '/nurse/dashboard' : '/login'} replace />
+    return <Navigate to={isNurse(user) || isAdmin(user) ? homeOf(user) : '/login'} replace />
   }
 
   return <Outlet />
@@ -50,7 +70,7 @@ function App() {
 
   const handleLogin = (u) => {
     setUser(u)
-    navigate(isNurse(u) ? '/nurse/dashboard' : '/patient/home', { replace: true })
+    navigate(homeOf(u), { replace: true })
   }
 
   return (
@@ -59,7 +79,7 @@ function App() {
         path="/"
         element={
           <Navigate
-            to={user ? (isNurse(user) ? '/nurse/dashboard' : '/patient/home') : '/login'}
+            to={user ? homeOf(user) : '/login'}
             replace
           />
         }
@@ -91,6 +111,17 @@ function App() {
           <Route path="patientinfos" element={<PatientInfos user={user} />} />
           <Route path="adduser" element={<AddUser user={user} />} />
           <Route path="approveleave" element={<ApproveLeave user={user} />} />
+        </Route>
+      </Route>
+
+      {/* admin */}
+      <Route element={<AdminRoute />}>
+        <Route path="/admin" element={<AdminLayout user={user} />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="accounts" element={<Accounts />} />
+          <Route path="counselors" element={<Counselors />} />
+          <Route path="security" element={<Security />} />
         </Route>
       </Route>
 

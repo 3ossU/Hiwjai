@@ -95,6 +95,7 @@ export const SERVICES = {
   booking: 'http://localhost:3002',
   record: 'http://localhost:3003',
   activity: 'http://localhost:3004',
+  admin: 'http://localhost:3005',
 };
 
 export async function svc(service, path, { method = 'GET', body } = {}) {
