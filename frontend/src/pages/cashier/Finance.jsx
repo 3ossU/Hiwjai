@@ -1,6 +1,11 @@
 import { useOutletContext } from 'react-router-dom';
 import { PageHeader, Card } from '../admin/AdminUI';
+<<<<<<< HEAD
 import { fmt2, round2, nowTime, todayLabel, todayTransactions, methodDetailText } from './cashierData';
+=======
+import { fmt2, round2, todayLabel, todayTransactions, methodDetailText } from './cashierData';
+import { cashierApi } from './cashierApi';
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 
 const StatCard = ({ label, value, icon, cls }) => (
   <Card className="p-5">
@@ -34,6 +39,7 @@ const Finance = () => {
     });
     if (!ok) return;
 
+<<<<<<< HEAD
     const sentAt = nowTime();
     const ids = new Set(unsent.map((t) => t.receiptNo));
     setData((prev) => ({
@@ -41,6 +47,21 @@ const Finance = () => {
       transactions: prev.transactions.map((t) => (ids.has(t.receiptNo) ? { ...t, sent: true, sentAt } : t)),
     }));
     showToast(`ส่งยอด ${fmt2(total)} ฿ เรียบร้อย — ปิดกะเคาน์เตอร์แล้ว`);
+=======
+    try {
+      const res = await cashierApi.closeShift();
+      const ids = new Set(unsent.map((t) => t.receiptNo));
+      setData((prev) => ({
+        ...prev,
+        transactions: prev.transactions.map((t) =>
+          ids.has(t.receiptNo) ? { ...t, sent: true, sentAt: res.sentAt } : t
+        ),
+      }));
+      showToast(`ส่งยอด ${fmt2(total)} ฿ เรียบร้อย — ปิดกะเคาน์เตอร์แล้ว`);
+    } catch (err) {
+      showToast(err.message || 'ไม่สามารถนำส่งยอดได้', 'error');
+    }
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   };
 
   return (
@@ -120,4 +141,8 @@ const Finance = () => {
   );
 };
 
+<<<<<<< HEAD
 export default Finance;
+=======
+export default Finance;
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726

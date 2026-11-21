@@ -6,7 +6,11 @@ import usersRoutes from './routes/users.js';
 import counselorsRoutes from './routes/counselors.js';
 import reportsRoutes from './routes/reports.js';
 import securityRoutes from './routes/security.js';
+<<<<<<< HEAD
 
+=======
+import activitiesRoutes from './routes/activities.js';
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 if (!process.env.JWT_SECRET) {
   throw new Error('กรุณาตั้ง JWT_SECRET ใน .env (ต้องตรงกับ auth-service)');
 }
@@ -27,7 +31,11 @@ admin.use('/counselors', counselorsRoutes);
 admin.use('/reports', reportsRoutes);
 admin.use('/security', securityRoutes);
 app.use('/api/admin', admin);
+<<<<<<< HEAD
 
+=======
+admin.use('/activities', activitiesRoutes);
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 app.use((_req, res) => res.status(404).json({ error: 'ไม่พบ endpoint' }));
 
 // eslint-disable-next-line no-unused-vars

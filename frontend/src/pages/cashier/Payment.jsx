@@ -6,9 +6,16 @@ import { btn, inputCls } from '../admin/adminStyles';
 import {
   METHODS, CASH, PROMPTPAY, CARD, CARD_BRANDS, PROMPTPAY_ACCOUNT, isTestPromptPay,
   promptPayPayload, methodDetailText, pickNextHn,
+<<<<<<< HEAD
   fmt2, fmtMoney, parseMoney, round2, clone, nowTime, todayLabel, nextReceiptNo,
   consultTotal, pharmacyTotal, serviceTotal, grandTotal,
 } from './cashierData';
+=======
+  fmt2, fmtMoney, parseMoney, round2, todayLabel,
+  consultTotal, pharmacyTotal, serviceTotal, grandTotal,
+} from './cashierData';
+import { cashierApi } from './cashierApi';
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 
 // ตอนพิมพ์ ให้เห็นเฉพาะใบเสร็จ
 const PRINT_CSS = `
@@ -252,7 +259,11 @@ const PaymentForm = ({ patient, onPay, onError, busy }) => {
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter') return;
                     e.preventDefault();
+<<<<<<< HEAD
                     if (!e.repeat) submit(); // กดค้างไม่ให้ยิงซ้ำ
+=======
+                    if (!e.repeat) submit();
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                   }}
                   inputMode="decimal"
                   autoComplete="off"
@@ -288,9 +299,15 @@ const PaymentForm = ({ patient, onPay, onError, busy }) => {
 };
 
 const Payment = () => {
+<<<<<<< HEAD
   const { data, setData, getData, selectedHn, setSelectedHn, showToast, askConfirm } = useOutletContext();
   const navigate = useNavigate();
   const [paidTx, setPaidTx] = useState(null); // รายการที่เพิ่งชำระ (แสดงใบเสร็จจริง)
+=======
+  const { data, setData, selectedHn, setSelectedHn, showToast, askConfirm } = useOutletContext();
+  const navigate = useNavigate();
+  const [paidTx, setPaidTx] = useState(null);
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   const [busy, setBusy] = useState(false);
 
   const patient = data.patients.find((x) => x.hn === selectedHn) || null;
@@ -314,6 +331,7 @@ const Payment = () => {
       message: `ยืนยันการชำระเงิน ${fmt2(total)} ฿ ผ่าน ${method} ?${extra}`,
       okText: 'ยืนยันชำระเงิน',
     });
+<<<<<<< HEAD
     setBusy(false);
     if (!ok) return;
 
@@ -353,6 +371,41 @@ const Payment = () => {
         ? `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | เงินทอน ${fmt2(change)} ฿`
         : `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | ${method}`
     );
+=======
+    if (!ok) {
+      setBusy(false);
+      return;
+    }
+
+    try {
+      const res = await cashierApi.submitPayment({
+        invoiceId: patient.invoiceId,
+        method,
+        received,
+        detail,
+      });
+
+      const tx = res.transaction;
+      const remaining = data.patients.filter((x) => x.hn !== patient.hn);
+
+      setData((prev) => ({
+        ...prev,
+        transactions: [tx, ...prev.transactions],
+        patients: prev.patients.filter((x) => x.hn !== tx.hn),
+      }));
+      setSelectedHn(pickNextHn(remaining));
+      setPaidTx(tx);
+      showToast(
+        method === CASH
+          ? `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | เงินทอน ${fmt2(tx.change)} ฿`
+          : `ชำระเงินเรียบร้อย — เลขที่ ${tx.receiptNo} | ${method}`
+      );
+    } catch (err) {
+      showToast(err.message || 'บันทึกการชำระเงินไม่สำเร็จ', 'error');
+    } finally {
+      setBusy(false);
+    }
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   };
 
   const nextPayment = () => {
@@ -419,4 +472,8 @@ const Payment = () => {
   );
 };
 
+<<<<<<< HEAD
 export default Payment;
+=======
+export default Payment;
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726

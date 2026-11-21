@@ -15,12 +15,20 @@ const pool = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'hiwjai',
+<<<<<<< HEAD
     port: process.env.DB_PORT || 3306
+=======
+    port: process.env.DB_PORT || 3307
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 });
 
 // ดึงรายการรอบเยี่ยมบ้านทั้งหมด พร้อมรายชื่อผู้ป่วย
 app.get('/api/home-visits', async (req, res) => {
     try {
+<<<<<<< HEAD
+=======
+        // ดึงข้อมูลรอบเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const [visits] = await pool.query(`
             SELECT hv.id, hv.team_name, hv.lead_doctor_id, hv.visit_date, hv.start_time, hv.end_time, hv.status,
                    u.first_name AS doctor_first_name, u.last_name AS doctor_last_name, u.gender AS doctor_gender
@@ -29,6 +37,10 @@ app.get('/api/home-visits', async (req, res) => {
             ORDER BY hv.visit_date ASC, hv.start_time ASC, hv.id ASC
         `);
 
+<<<<<<< HEAD
+=======
+        // ดึงข้อมูลคนไข้ + สถานะการเยี่ยม
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const [visitPatients] = await pool.query(`
             SELECT hvp.home_visit_id, hvp.patient_id, hvp.status AS patient_status,
                    pi.hn, u.first_name, u.last_name, u.avatar_url
@@ -36,6 +48,7 @@ app.get('/api/home-visits', async (req, res) => {
             JOIN patient_info pi ON hvp.patient_id = pi.id
             JOIN users u ON pi.user_id = u.id
         `);
+<<<<<<< HEAD
 
         const formatted = visits.map((v) => ({
             ...v,
@@ -52,6 +65,25 @@ app.get('/api/home-visits', async (req, res) => {
                 }))
         }));
 
+=======
+
+        // ประกอบข้อมูลทั้ง 2 ส่วนเข้าด้วยกัน
+        const formatted = visits.map((v) => ({
+            ...v, // ข้อมูลนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
+            lead_doctor_name: `${v.doctor_first_name || ''} ${v.doctor_last_name || ''}`.trim(),
+            lead_doctor_gender: v.doctor_gender,
+            patients: visitPatients
+                .filter((p) => p.home_visit_id === v.id)
+                .map((p) => ({
+                    patient_id: p.patient_id,
+                    patient_status: p.patient_status,
+                    hn: p.hn,
+                    patient_name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+                    avatar_url: p.avatar_url
+                }))
+        }));
+
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         res.json({ success: true, data: formatted });
     } catch (err) {
         console.error('Error fetching home visits:', err);
@@ -61,10 +93,16 @@ app.get('/api/home-visits', async (req, res) => {
 
 // สร้างรอบเยี่ยมบ้านใหม่
 app.post('/api/home-visits', async (req, res) => {
+<<<<<<< HEAD
+=======
+    // ประกาศ pool.getConnection 
+    // คล้าย pool.query แต่เพราะเราจะสร้างที effect กับตั้ง 2 table เลยต้องใช้
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
     const connection = await pool.getConnection();
     try {
         const { team_name, lead_doctor_id, visit_date, start_time, end_time, patient_ids } = req.body;
 
+<<<<<<< HEAD
         if (!team_name || !lead_doctor_id || !visit_date || !start_time || !end_time || !Array.isArray(patient_ids) || patient_ids.length === 0) {
             connection.release();
             return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -106,6 +144,52 @@ app.post('/api/home-visits', async (req, res) => {
             [team_name.trim(), lead_doctor_id, visit_date, start_time, end_time]
         );
 
+=======
+        // เช็คข้อมูลพื้นฐานที่ห้ามเป็น null ว่าได้รับมามั้ย ถ้าไม่มีก็ไม่ทำ
+        if (!team_name || !lead_doctor_id || !visit_date || !start_time || !end_time || !Array.isArray(patient_ids) || patient_ids.length === 0) {
+            connection.release();
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+
+        // เช็คว่าหมอมีรอบเยี่ยมบ้านอื่นที่เวลาทับกันไหม
+        const [visitConflicts] = await connection.query(
+            `SELECT id, team_name FROM home_visits
+             WHERE lead_doctor_id = ?
+               AND status <> 'cancelled'
+               AND start_time < ?
+               AND end_time > ?`,
+            [lead_doctor_id, end_time, start_time]
+        );
+        if (visitConflicts.length > 0) {
+            connection.release();
+            return res.status(409).json({ success: false, error: 'แพทย์มีรอบเยี่ยมบ้านอื่นในช่วงเวลานี้แล้ว' });
+        }
+
+        // เช็คว่าหมอมีนัดหมายในตาราง booking ที่เวลาทับกันไหม
+        const [bookingConflicts] = await connection.query(
+            `SELECT id FROM booking
+             WHERE doctor_id = ?
+               AND status <> 'cancelled'
+               AND start_time < ?
+               AND end_time > ?`,
+            [lead_doctor_id, end_time, start_time]
+        );
+        if (bookingConflicts.length > 0) {
+            connection.release();
+            return res.status(409).json({ success: false, error: 'แพทย์มีตารางนัดหมายผู้ป่วยในช่วงเวลานี้แล้ว' });
+        }
+
+        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
+        await connection.beginTransaction();
+
+        // ข้อมูลฝั่งนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
+        const [result] = await connection.query(
+            `INSERT INTO home_visits (team_name, lead_doctor_id, visit_date, start_time, end_time, status)
+             VALUES (?, ?, ?, ?, ?, 'planned')`,
+            [team_name.trim(), lead_doctor_id, visit_date, start_time, end_time]
+        );
+
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const visitId = result.insertId;
 
         for (const patientId of patient_ids) {
@@ -116,6 +200,10 @@ app.post('/api/home-visits', async (req, res) => {
             );
         }
 
+<<<<<<< HEAD
+=======
+        // ยืนยันกับระบบ Transaction ว่าให้ save สิ่งที่ db ทำงานไป
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         await connection.commit();
         connection.release();
 
@@ -135,6 +223,10 @@ app.put('/api/home-visits/:id', async (req, res) => {
         const { id } = req.params;
         const { team_name, lead_doctor_id, visit_date, start_time, end_time, status, patient_ids } = req.body;
 
+<<<<<<< HEAD
+=======
+        // เช็คว่ามีรอบเยี่ยมบ้านนี้อยู่จริงไหม
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const [existingRows] = await connection.query(`SELECT * FROM home_visits WHERE id = ?`, [id]);
         if (existingRows.length === 0) {
             connection.release();
@@ -149,6 +241,10 @@ app.put('/api/home-visits/:id', async (req, res) => {
         const nextEndTime = end_time || existing.end_time;
         const nextStatus = status || existing.status;
 
+<<<<<<< HEAD
+=======
+        // ถ้าไม่ได้ยกเลิก ให้เช็คเวลาทับซ้อนก่อน
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         if (nextStatus !== 'cancelled') {
             // เช็คว่าหมอมีรอบเยี่ยมบ้านอื่น (ที่ไม่ใช่รอบนี้) ที่เวลาทับกันไหม
             const [visitConflicts] = await connection.query(
@@ -180,8 +276,15 @@ app.put('/api/home-visits/:id', async (req, res) => {
             }
         }
 
+<<<<<<< HEAD
         await connection.beginTransaction();
 
+=======
+        // เริ่มทำ Transaction
+        await connection.beginTransaction();
+
+        // อัปเดตข้อมูลหลักของรอบเยี่ยมบ้าน
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         await connection.query(
             `UPDATE home_visits
              SET team_name = ?, lead_doctor_id = ?, visit_date = ?, start_time = ?, end_time = ?, status = ?
@@ -189,6 +292,10 @@ app.put('/api/home-visits/:id', async (req, res) => {
             [nextTeamName, nextDoctorId, nextVisitDate, nextStartTime, nextEndTime, nextStatus, id]
         );
 
+<<<<<<< HEAD
+=======
+        // ถ้ามีการส่งรายชื่อผู้ป่วยใหม่มา ให้ล้างของเก่าแล้วใส่ใหม่
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         if (Array.isArray(patient_ids) && patient_ids.length > 0) {
             await connection.query(`DELETE FROM home_visit_patients WHERE home_visit_id = ?`, [id]);
             for (const patientId of patient_ids) {
@@ -200,6 +307,10 @@ app.put('/api/home-visits/:id', async (req, res) => {
             }
         }
 
+<<<<<<< HEAD
+=======
+        // ยืนยันกับระบบ Transaction
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         await connection.commit();
         connection.release();
 
@@ -218,12 +329,20 @@ app.patch('/api/home-visits/:id/complete', async (req, res) => {
     try {
         const { id } = req.params;
 
+<<<<<<< HEAD
+=======
+        // เช็คว่ามีทริปนี้อยู่จริงไหม
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const [existingRows] = await connection.query(`SELECT id, status FROM home_visits WHERE id = ?`, [id]);
         if (existingRows.length === 0) {
             connection.release();
             return res.status(404).json({ success: false, error: 'Home visit not found' });
         }
 
+<<<<<<< HEAD
+=======
+        // ทริปที่ถูกยกเลิกไปแล้ว จะกดเสร็จสิ้นไม่ได้
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         if (existingRows[0].status === 'cancelled') {
             connection.release();
             return res.status(400).json({ success: false, error: 'Cannot complete a cancelled home visit' });
@@ -231,11 +350,19 @@ app.patch('/api/home-visits/:id/complete', async (req, res) => {
 
         await connection.beginTransaction();
 
+<<<<<<< HEAD
+=======
+        // อัปเดตสถานะทริปหลัก
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         await connection.query(
             `UPDATE home_visits SET status = 'completed' WHERE id = ?`,
             [id]
         );
 
+<<<<<<< HEAD
+=======
+        // อัปเดตคนไข้ที่ยังรอเยี่ยมให้เป็นเยี่ยมแล้วทั้งหมด
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         await connection.query(
             `UPDATE home_visit_patients
              SET status = 'visited'
@@ -261,6 +388,10 @@ app.patch('/api/home-visits/:visitId/patients/:patientId/status', async (req, re
         const { visitId, patientId } = req.params;
         const { status } = req.body;
 
+<<<<<<< HEAD
+=======
+        // เปลี่ยน status ใน db
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const [result] = await pool.query(
             `UPDATE home_visit_patients
              SET status = ?
@@ -268,6 +399,10 @@ app.patch('/api/home-visits/:visitId/patients/:patientId/status', async (req, re
             [status, visitId, patientId]
         );
 
+<<<<<<< HEAD
+=======
+        // ดูว่านัดหมายกันจริงมั้ย ถ้าไม่มีก็ไม่ทำ
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, error: 'Patient in visit not found' });
         }
@@ -283,11 +418,21 @@ app.patch('/api/home-visits/:visitId/patients/:patientId/status', async (req, re
 app.delete('/api/home-visits/:id', async (req, res) => {
     try {
         const { id } = req.params;
+<<<<<<< HEAD
         const [result] = await pool.query(
             `UPDATE home_visits SET status = 'cancelled' WHERE id = ?`,
             [id]
         );
 
+=======
+
+        // เปลี่ยนสถานะการนัดหมายเป็น cancelled
+        const [result] = await pool.query(
+            `UPDATE home_visits SET status = 'cancelled' WHERE id = ?`,
+            [id]
+        );
+
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, error: 'Home visit not found' });
         }

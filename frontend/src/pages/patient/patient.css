@@ -25,6 +25,10 @@
   margin-right: auto;
 }
 .pt-nav a {
+<<<<<<< HEAD
+=======
+  position: relative;
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   color: #111;
   text-decoration: none;
   padding: 8px 16px;
@@ -41,6 +45,38 @@
   cursor: pointer;
   font-size: 13px;
 }
+<<<<<<< HEAD
+=======
+
+/* ---------- ชื่อ + รูปโปรไฟล์ บนแถบเมนู ---------- */
+.pt-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.pt-user img {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #00c0e8;
+  background: #e3f7fb;
+}
+.pt-user span {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .pt-user span {
+    display: none;
+  }
+}
+
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 .pt-main {
   max-width: 1100px;
   margin: 0 auto;
@@ -111,4 +147,22 @@
 .pt-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+<<<<<<< HEAD
+=======
+}
+
+/* ---------- จุดแดงแจ้งจำนวน (ถ้าใช้) ---------- */
+.pt-dot {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #e0594a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 }

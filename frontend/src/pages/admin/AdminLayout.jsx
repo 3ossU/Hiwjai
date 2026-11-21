@@ -20,6 +20,10 @@ const menuItems = [
   { path: '/admin/dashboard', label: 'รายงานภาพรวม', icon: 'bi-grid-1x2' },
   { path: '/admin/accounts', label: 'บัญชีและ Role', icon: 'bi-people' },
   { path: '/admin/counselors', label: 'ผู้ให้คำปรึกษา', icon: 'bi-chat-heart' },
+<<<<<<< HEAD
+=======
+  { path: '/admin/activities', label: 'จัดการกิจกรรม', icon: 'bi-calendar-event' },
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   { path: '/admin/security', label: 'บันทึกและความปลอดภัย', icon: 'bi-shield-check' },
 ];
 

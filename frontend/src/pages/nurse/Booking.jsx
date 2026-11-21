@@ -54,6 +54,9 @@ const Booking = ({ user }) => {
   const [selectedDate, setSelectedDate] = useState(getLocalDateString); // วันที่ที่กำลังดูอยู่ (Default = วันนี้)
   const [isLoading, setIsLoading] = useState(true); // สถานะการโหลดข้อมูล
 
+  // [เพิ่มใหม่] เก็บข้อมูลวันลาของแพทย์ (approved) ที่ได้มาจาก API /api/bookings
+  const [doctorLeaves, setDoctorLeaves] = useState([]);
+
   // State สำหรับ Modal จองคิว
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,6 +135,11 @@ const Booking = ({ user }) => {
       const res = await axios.get(`http://localhost:5001/api/bookings?date=${date}`);
       if (res.data.success) {
         setBookings(Array.isArray(res.data.data) ? res.data.data : []);
+<<<<<<< HEAD
+=======
+        // [เพิ่มใหม่] เก็บวันลาแพทย์ที่ API ส่งกลับมาด้วย
+        setDoctorLeaves(Array.isArray(res.data.doctor_leaves) ? res.data.doctor_leaves : []);
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
       }
     } catch (error) {
       console.error("ดึงข้อมูลนัดหมายไม่สำเร็จ:", error);
@@ -234,6 +242,21 @@ const Booking = ({ user }) => {
     return doc.name.toLowerCase().includes(keyword);
   });
 
+<<<<<<< HEAD
+=======
+  // [เพิ่มใหม่] ตรวจสอบว่าแพทย์คนนี้ลาวันที่ระบุหรือไม่
+  // คืนค่า leave object ถ้าลา, คืน null ถ้าไม่ลา
+  const getDoctorLeaveOnDate = (doctorId, dateStr) => {
+    if (!dateStr) return null;
+    return doctorLeaves.find((lv) => {
+      if (Number(lv.doctor_id) !== Number(doctorId)) return false;
+      const start = String(lv.start_date).slice(0, 10);
+      const end = String(lv.end_date).slice(0, 10);
+      return dateStr >= start && dateStr <= end;
+    }) || null;
+  };
+
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   // ฟังก์ชันจัดการเมื่อพิมพ์ในฟอร์ม และปรับเวลาสิ้นสุดอัตโนมัติหากไม่สัมพันธ์กับเวลาเริ่ม
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -304,6 +327,20 @@ const Booking = ({ user }) => {
       return;
     }
 
+<<<<<<< HEAD
+=======
+    // [เพิ่มใหม่] ตรวจสอบซ้ำอีกชั้นว่าแพทย์ลาวันที่เลือกหรือไม่ (กันกรณี UI ถูก bypass)
+    const doctorOnLeave = getDoctorLeaveOnDate(formData.doctor_id, selectedDate);
+    if (doctorOnLeave) {
+      showAlert(
+        'warning',
+        'แพทย์ลาวันนี้',
+        `แพทย์ท่านนี้มีวันลาในวันที่เลือก กรุณาเลือกแพทย์ท่านอื่นหรือเปลี่ยนวันที่`
+      );
+      return;
+    }
+
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
     if (hasPatientTimeOverlap(formData.patient_id, formData.start_time, formData.end_time)) {
       showAlert(
         'warning',
@@ -466,14 +503,25 @@ const Booking = ({ user }) => {
               <thead className="sticky top-0 bg-white z-10 shadow-sm">
                 <tr>
                   <th className="p-4 border-b border-r border-gray-100 w-24 text-center text-gray-500 font-bold text-sm">เวลา</th>
-                  {doctors.map(doc => (
-                    <th key={doc.id} className="p-4 border-b border-gray-100 text-center font-bold text-black min-w-45">
-                      <div className="flex items-center justify-center gap-2">
-                        <i className="bi bi-person-badge text-[#00c0e8]"></i>
-                        {doc.name}
-                      </div>
-                    </th>
-                  ))}
+                  {doctors.map(doc => {
+                    // [เพิ่มใหม่] เช็คว่าแพทย์คนนี้ลาวันที่เลือกหรือไม่
+                    const onLeave = getDoctorLeaveOnDate(doc.id, selectedDate);
+                    return (
+                      <th key={doc.id} className="p-4 border-b border-gray-100 text-center font-bold text-black min-w-45">
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="flex items-center justify-center gap-2">
+                            <i className="bi bi-person-badge text-[#00c0e8]"></i>
+                            {doc.name}
+                          </div>
+                          {/* {onLeave && (
+                            <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-semibold">
+                              <i className="bi bi-calendar-x mr-1"></i>ลา
+                            </span>
+                          )} */}
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
 
@@ -489,6 +537,8 @@ const Booking = ({ user }) => {
                     {/* คอลัมน์แพทย์แต่ละท่าน */}
                     {doctors.map(doc => {
                       const booking = getBookingForSlot(time, doc.id);
+                      // [เพิ่มใหม่] เช็คว่าแพทย์ลาช่วงนี้หรือไม่
+                      const onLeave = getDoctorLeaveOnDate(doc.id, selectedDate);
 
                       return (
                         <td key={`${time}-${doc.id}`} className="p-2 border-b border-gray-100 h-20 align-top">
@@ -517,6 +567,13 @@ const Booking = ({ user }) => {
                                   </button>
                                 )}
                               </div>
+                            </div>
+                          ) : onLeave ? (
+                            // [เพิ่มใหม่] แพทย์ลาวันนี้ — แสดงแถบเทา ไม่ให้กด
+                            <div className="h-full rounded-lg bg-gray-100/60 border border-dashed border-gray-200 flex items-center justify-center">
+                              <span className="text-[10px] text-gray-400 font-medium">
+                                <i className="bi bi-x-circle mr-1"></i>แพทย์ลา
+                              </span>
                             </div>
                           ) : (
                             <div
@@ -640,19 +697,41 @@ const Booking = ({ user }) => {
                   ) : (
                     filteredDoctors.map((doc) => {
                       const isSelected = Number(formData.doctor_id) === Number(doc.id);
+<<<<<<< HEAD
+=======
+                      // [เพิ่มใหม่] เช็คว่าแพทย์คนนี้ลาวันที่เลือกหรือไม่
+                      const onLeave = getDoctorLeaveOnDate(doc.id, selectedDate);
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                       return (
                         <button
                           key={doc.id}
                           type="button"
+<<<<<<< HEAD
                           onClick={() => setFormData(prev => ({ ...prev, doctor_id: String(doc.id) }))}
                           className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
                             isSelected
+=======
+                          disabled={onLeave}
+                          onClick={() => !onLeave && setFormData(prev => ({ ...prev, doctor_id: String(doc.id) }))}
+                          className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
+                            onLeave
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                              : isSelected
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                               ? 'bg-[#00c0e8] text-white font-semibold shadow-sm'
                               : 'bg-white text-gray-700 hover:bg-[#00c0e8]/10 border border-gray-100'
                           }`}
                         >
+<<<<<<< HEAD
                           <span className="text-sm truncate">{doc.name}</span>
                           {isSelected && <i className="bi bi-check-lg text-sm shrink-0"></i>}
+=======
+                          <span className="text-sm truncate">
+                            {doc.name}
+                            {onLeave && <span className="ml-2 text-[10px] text-red-500">(ลา)</span>}
+                          </span>
+                          {isSelected && !onLeave && <i className="bi bi-check-lg text-sm shrink-0"></i>}
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                         </button>
                       );
                     })
@@ -703,7 +782,11 @@ const Booking = ({ user }) => {
                 </div>
 
                 <p className="text-xs text-gray-400">
+<<<<<<< HEAD
                   * พักกลางวัน 12:00 - 13:00 น. และปิดทำการหลัง 20:00 น. (ระบบจะปรับเวลาสิ้นสุดให้สัมพันธ์กับเวลาเริ่มอัตโนมัติ)
+=======
+                  * พักกลางวัน 12:00 - 13:00 น. และปิดทำการหลัง 20:00 น.
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                 </p>
               </div>
 

@@ -20,10 +20,14 @@ const pool = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'hiwjai',
-    port: process.env.DB_PORT || 3306
+    port: process.env.DB_PORT || 3307
 });
 
+<<<<<<< HEAD
 // แปลง allergies จาก DB/request ให้เป็น Array ของ Object [{ name }] เสมอ (ไม่เอา note)
+=======
+// แปลงอาการแพ้จาก db ให้เป็น Array ของ Object
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 function normalizeAllergiesObjects(allergies) {
     if (!allergies) return [];
 
@@ -111,6 +115,10 @@ app.get('/api/patients', async (req, res) => {
         `;
         let queryParams = [];
 
+<<<<<<< HEAD
+=======
+        // แต่ถ้ามีการ search ก็ให้กรองหา ชื่อ, นามสกุล, hn ที่ตรงกับที่ search
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         if (search) {
             query += ` WHERE u.first_name LIKE ? OR u.last_name LIKE ? OR p.hn LIKE ?`;
             queryParams = [`%${search}%`, `%${search}%`, `%${search}%`];
@@ -123,6 +131,10 @@ app.get('/api/patients', async (req, res) => {
             allergies: normalizeAllergiesObjects(row.allergies),
         }));
 
+<<<<<<< HEAD
+=======
+        // ส่งกลับหน้าบ้านแบบ JSON
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         res.json({ 
             success: true, 
             data: formattedRows 
@@ -149,6 +161,10 @@ app.get('/api/patients/:id', async (req, res) => {
         `;
         const [rows] = await pool.query(query, [id]);
 
+<<<<<<< HEAD
+=======
+        // ไม่เจอ id คนไข้ก็สาด 404 ไปครับสมาชิก
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         if (rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Patient not found' });
         }
@@ -158,6 +174,10 @@ app.get('/api/patients/:id', async (req, res) => {
             allergies: normalizeAllergiesObjects(rows[0].allergies),
         };
 
+<<<<<<< HEAD
+=======
+        // ส่งข้อมูลคนไข้รายนั้นกลับไปในรูปแบบ JSON
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         res.json({ 
             success: true, 
             data: patient 
@@ -187,8 +207,15 @@ app.post('/api/patients', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+<<<<<<< HEAD
         await connection.beginTransaction();
 
+=======
+        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
+        await connection.beginTransaction();
+
+        // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้ (user)
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const userQuery = `
             INSERT INTO users (username, password_hash, first_name, last_name, phone_number, role, avatar_url, gender)
             VALUES (?, ?, ?, ?, ?, 'patient', ?, ?)
@@ -213,6 +240,10 @@ app.post('/api/patients', async (req, res) => {
 
         const normalizedAllergies = normalizeAllergiesObjects(allergies);
 
+<<<<<<< HEAD
+=======
+        // set ลง db จริง ๆ โดยเอาข้อมูลที่รับจากฟ้อนเอนไปแปะใน ? ด้านบน
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         await connection.query(patientQuery, [
             newUserId,
             hn,
@@ -227,7 +258,11 @@ app.post('/api/patients', async (req, res) => {
         ]);
 
         await connection.commit();
+<<<<<<< HEAD
         connection.release();
+=======
+        connection.release(); // ปิดการทำงาน pool.getConnection 
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 
         res.status(201).json({
             success: true,
@@ -258,8 +293,15 @@ app.put('/api/patients/:id', async (req, res) => {
             emergency_contact, emergency_contact_relation
         } = req.body;
 
+<<<<<<< HEAD
         await connection.beginTransaction();
 
+=======
+        // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
+        await connection.beginTransaction();
+
+        // หาคนไข้ใน db ที่ตรงกับ id ที่หน้าบ้านส่งมา
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         const [patientRows] = await connection.query('SELECT user_id FROM patient_info WHERE id = ?', [id]);
         
         if (patientRows.length === 0) {
@@ -278,6 +320,10 @@ app.put('/api/patients/:id', async (req, res) => {
 
         const normalizedAllergies = normalizeAllergiesObjects(allergies);
 
+<<<<<<< HEAD
+=======
+        // แก้ไขข้อมูลที่ตาราง patient info
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         await connection.query(`
             UPDATE patient_info 
             SET birth_date = ?, weight = ?, height = ?, blood_group = ?, allergies = ?, address = ?,
@@ -296,7 +342,11 @@ app.put('/api/patients/:id', async (req, res) => {
         ]);
 
         await connection.commit(); 
+<<<<<<< HEAD
         connection.release();
+=======
+        connection.release(); // ปิดการทำงาน pool.getConnection 
+>>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 
         res.json({ success: true, message: 'อัปเดตข้อมูลผู้ป่วยสำเร็จ' });
     } 
