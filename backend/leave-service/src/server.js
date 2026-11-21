@@ -70,6 +70,81 @@ app.post('/api/leaves', async (req, res) => {
             });
         }
 
+        // เช็คว่าคนลาใช่หมอไหม
+        const [userRows] = await pool.query(
+            `SELECT id, first_name, last_name, role FROM users WHERE id = ?`,
+            [user_id]
+        );
+        if (userRows.length === 0) {
+            return res.status(404).json({ success: false, error: 'ไม่พบข้อมูลผู้ใช้' });
+        }
+        const leaveOwner = userRows[0];
+
+        // ถ้าคนลาเป็นหมอ ต้องไปเช็คว่ามันทับนัดตรวจหรือเยี่ยมบ้าน
+        if (leaveOwner.role === 'doctor') {
+            
+            // เช็คว่าหมอลาทับวันที่มีนัดตรวจผู้ป่วยไหม
+            const [bookingConflicts] = await pool.query(
+                `SELECT b.id, b.appointment_date, b.start_time, b.end_time,
+                        pi.hn, u_p.first_name AS patient_first_name, u_p.last_name AS patient_last_name
+                 FROM booking b
+                 JOIN patient_info pi ON b.patient_id = pi.id
+                 JOIN users u_p ON pi.user_id = u_p.id
+                 WHERE b.doctor_id = ?
+                   AND b.status <> 'cancelled'
+                   AND b.appointment_date BETWEEN ? AND ?
+                 ORDER BY b.appointment_date ASC, b.start_time ASC`,
+                [user_id, String(start_date).slice(0, 10), String(end_date).slice(0, 10)]
+            );
+            if (bookingConflicts.length > 0) {
+                const first = bookingConflicts[0];
+                const patientName = `${first.patient_first_name || ''} ${first.patient_last_name || ''}`.trim();
+                return res.status(409).json({
+                    success: false,
+                    error: `ไม่สามารถลาได้ เนื่องจากมีนัดหมายผู้ป่วยในช่วงวันที่ลาอยู่ (${bookingConflicts.length} รายการ) เช่น ${patientName} (HN: ${first.hn}) วันที่ ${String(first.appointment_date).slice(0,10)} เวลา ${first.start_time}-${first.end_time}`,
+                    conflicts: bookingConflicts
+                });
+            }
+
+            // เช็คว่าหมอลาทับวันที่มีรอบเยี่ยมบ้านไหม
+            const [visitConflicts] = await pool.query(
+                `SELECT hv.id, hv.visit_date, hv.start_time, hv.end_time, hv.team_name
+                 FROM home_visits hv
+                 WHERE hv.lead_doctor_id = ?
+                   AND hv.status <> 'cancelled'
+                   AND hv.visit_date BETWEEN ? AND ?
+                 ORDER BY hv.visit_date ASC, hv.start_time ASC`,
+                [user_id, String(start_date).slice(0, 10), String(end_date).slice(0, 10)]
+            );
+            if (visitConflicts.length > 0) {
+                const first = visitConflicts[0];
+                return res.status(409).json({
+                    success: false,
+                    error: `ไม่สามารถลาได้ เนื่องจากมีรอบเยี่ยมบ้านในช่วงวันที่ลาอยู่ (${visitConflicts.length} รายการ) เช่น ทีม ${first.team_name} วันที่ ${String(first.visit_date).slice(0,10)} เวลา ${first.start_time}-${first.end_time}`,
+                    conflicts: visitConflicts
+                });
+            }
+        }
+
+        // เช็คว่าคนที่ลามันเคยลาเวลานี้ไปยัง แต่เช็คเฉพาะใบที่ยังไม่ถูกปฏิเสธ (pending หรือ approved)
+        const [selfConflicts] = await pool.query(
+            `SELECT id, start_date, end_date, status
+             FROM \`leave\`
+             WHERE user_id = ?
+               AND status IN ('pending', 'approved')
+               AND DATE(start_date) <= ?
+               AND DATE(end_date) >= ?
+             ORDER BY start_date ASC`,
+            [user_id, String(end_date).slice(0, 10), String(start_date).slice(0, 10)]
+        );
+        if (selfConflicts.length > 0) {
+            return res.status(409).json({
+                success: false,
+                error: `มีใบลาที่ทับซ้อนกับช่วงเวลานี้อยู่แล้ว (${selfConflicts.length} รายการ)`,
+                conflicts: selfConflicts
+            });
+        }
+
 
         // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้
         const query = `
@@ -209,12 +284,80 @@ app.patch('/api/leaves/:id/status', async (req, res) => {
 
         const leaveOwnerId = leaveRows[0].user_id;
 
+        // เช็คว่าใบลานี้เคยถูกอนุมัติไปแล้วรึยัง
+        if (leaveRows[0].status !== 'pending') {
+            return res.status(409).json({
+                success: false,
+                error: `ใบลานี้ถูกดำเนินการไปแล้ว (สถานะ: ${leaveRows[0].status})`
+            });
+        }
+
         // ไม่ให้หัวหน้าพยาบาล approve or reject ใบลาของตัวเองได้
         if (Number(leaveOwnerId) === Number(approver_id)) {
             return res.status(403).json({ 
                 success: false, 
                 error: 'คุณไม่สามารถอนุมัติหรือปฏิเสธใบลาของตัวเองได้' 
             });
+        }
+
+        // ถ้าจะกด approved ให้เช็คซ้ำอีกทีว่าหมอยังไม่มีนัดตรวจหรือทริปเยี่ยมบ้านทับช่วงวันลาหรือไม่
+        // เพราะระหว่างที่รออนุมัติ อาจมีคนสร้างนัด/ทริปใหม่เข้ามาแทรกได้
+        if (status === 'approved') {
+            const [leaveDetailRows] = await pool.query(
+                `SELECT start_date, end_date FROM \`leave\` WHERE id = ?`, [id]
+            );
+            const startDate = String(leaveDetailRows[0].start_date).slice(0, 10);
+            const endDate = String(leaveDetailRows[0].end_date).slice(0, 10);
+
+            // ดึงข้อมูลผู้ขอลาเพื่อเช็ค role
+            const [ownerRows] = await pool.query(
+                `SELECT id, first_name, last_name, role FROM users WHERE id = ?`, [leaveOwnerId]
+            );
+            const owner = ownerRows[0] || {};
+
+            if (owner.role === 'doctor') {
+                // เช็ค booking ทับ
+                const [bookingConflicts] = await pool.query(
+                    `SELECT b.id, b.appointment_date, b.start_time, b.end_time,
+                            pi.hn, u_p.first_name AS patient_first_name, u_p.last_name AS patient_last_name
+                     FROM booking b
+                     JOIN patient_info pi ON b.patient_id = pi.id
+                     JOIN users u_p ON pi.user_id = u_p.id
+                     WHERE b.doctor_id = ?
+                       AND b.status <> 'cancelled'
+                       AND b.appointment_date BETWEEN ? AND ?
+                     ORDER BY b.appointment_date ASC, b.start_time ASC`,
+                    [leaveOwnerId, startDate, endDate]
+                );
+                if (bookingConflicts.length > 0) {
+                    const first = bookingConflicts[0];
+                    const patientName = `${first.patient_first_name || ''} ${first.patient_last_name || ''}`.trim();
+                    return res.status(409).json({
+                        success: false,
+                        error: `ไม่สามารถอนุมัติได้ มีนัดหมายผู้ป่วยในช่วงวันที่ลา (${bookingConflicts.length} รายการ) เช่น ${patientName} (HN: ${first.hn}) กรุณายกเลิกนัดก่อนอนุมัติ`,
+                        conflicts: bookingConflicts
+                    });
+                }
+
+                // เช็ค home_visits ทับ
+                const [visitConflicts] = await pool.query(
+                    `SELECT hv.id, hv.visit_date, hv.start_time, hv.end_time, hv.team_name
+                     FROM home_visits hv
+                     WHERE hv.lead_doctor_id = ?
+                       AND hv.status <> 'cancelled'
+                       AND hv.visit_date BETWEEN ? AND ?
+                     ORDER BY hv.visit_date ASC, hv.start_time ASC`,
+                    [leaveOwnerId, startDate, endDate]
+                );
+                if (visitConflicts.length > 0) {
+                    const first = visitConflicts[0];
+                    return res.status(409).json({
+                        success: false,
+                        error: `ไม่สามารถอนุมัติได้ มีรอบเยี่ยมบ้านในช่วงวันที่ลา (${visitConflicts.length} รายการ) เช่น ทีม ${first.team_name} กรุณายกเลิกก่อนอนุมัติ`,
+                        conflicts: visitConflicts
+                    });
+                }
+            }
         }
 
         // อัพเดตสถานะใบลา
