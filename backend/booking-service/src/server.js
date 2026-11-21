@@ -19,6 +19,15 @@ const pool = mysql.createPool({
 });
 
 
+// กำหนดคำหน้าหมอ
+const formatDoctorName = (gender, firstName, lastName) => {
+    let title = '';
+    if (gender === 'male') title = 'นพ.';
+    else if (gender === 'female') title = 'พญ.';
+    const fullName = `${firstName || ''} ${lastName || ''}`.trim();
+    return `${title ? `${title} ` : ''}${fullName}`.trim();
+};
+
 // ดูตารางนัดหมายทั้งหมด และเลือกดูตามวันที่หรือดูตามหมอได้
 app.get('/api/bookings', async (req, res) => {
     try {
@@ -26,9 +35,9 @@ app.get('/api/bookings', async (req, res) => {
 
         // ดึงข้อมูลการนัดหมายทั้งหมด
         let query = `
-            SELECT b.id, b.doctor_id, b.appointment_date, b.start_time, b.end_time, b.status, b.note,
+            SELECT b.id, b.doctor_id, b.patient_id, b.appointment_date, b.start_time, b.end_time, b.status, b.note,
                    p.hn, u_patient.first_name AS patient_first_name, u_patient.last_name AS patient_last_name,
-                   u_doctor.first_name AS doctor_first_name, u_doctor.last_name AS doctor_last_name,
+                   u_doctor.first_name AS doctor_first_name, u_doctor.last_name AS doctor_last_name, u_doctor.gender AS doctor_gender,
                    u_nurse.first_name AS nurse_first_name, u_nurse.last_name AS nurse_last_name
             FROM booking b
             JOIN patient_info p ON b.patient_id = p.id
@@ -67,7 +76,7 @@ app.get('/api/bookings', async (req, res) => {
         let leaveQuery = `
             SELECT l.id, l.user_id AS doctor_id, l.leave_type,
                    l.start_date, l.end_date,
-                   u.first_name AS doctor_first_name, u.last_name AS doctor_last_name
+                   u.first_name AS doctor_first_name, u.last_name AS doctor_last_name, u.gender AS doctor_gender
             FROM \`leave\` l
             JOIN users u ON l.user_id = u.id
             WHERE l.status = 'approved'
@@ -112,6 +121,17 @@ app.post('/api/bookings', async (req, res) => {
 
         const normalizedAppointmentDate = String(appointment_date).slice(0, 10);
 
+        // ดึงข้อมูลแพทย์ที่กำลังจะจอง โดยดึง gender เอาไปกำหนดคำหน้าว่าใช้ นพ หรือ พญ
+        const [doctorInfoRows] = await pool.query(
+            `SELECT first_name, last_name, gender FROM users WHERE id = ? AND role = 'doctor'`,
+            [doctor_id]
+        );
+        if (doctorInfoRows.length === 0) {
+            return res.status(404).json({ success: false, error: 'ไม่พบข้อมูลแพทย์' });
+        }
+        const currentDoctor = doctorInfoRows[0];
+        const currentDoctorName = formatDoctorName(currentDoctor.gender, currentDoctor.first_name, currentDoctor.last_name);
+
         // เช็คว่าหมอมีวันลาที่อนุมัติแล้วตรงกับวันที่นัดหมายไหม
         const [doctorLeaveConflicts] = await pool.query(
             `SELECT l.id, l.leave_type, l.start_date, l.end_date
@@ -123,7 +143,7 @@ app.post('/api/bookings', async (req, res) => {
         );
         console.log('DEBUG DOCTOR LEAVE:', { doctor_id, normalizedAppointmentDate, conflicts: doctorLeaveConflicts });
         if (doctorLeaveConflicts.length > 0) {
-            return res.status(409).json({ success: false, error: 'แพทย์มีวันลาตรงกับวันที่นัดหมาย' });
+            return res.status(409).json({ success: false, error: `${currentDoctorName} มีวันลาตรงกับวันที่นัดหมาย` });
         }
 
         // เช็คว่าหมอมีนัดหมายในตาราง booking ที่เวลาทับกันไหม
@@ -136,7 +156,28 @@ app.post('/api/bookings', async (req, res) => {
             [doctor_id, end_time, start_time]
         );
         if (bookingConflicts.length > 0) {
-            return res.status(409).json({ success: false, error: 'แพทย์มีตารางนัดหมายอื่นในช่วงเวลานี้แล้ว' });
+            return res.status(409).json({ success: false, error: `${currentDoctorName} มีตารางนัดหมายอื่นในช่วงเวลานี้แล้ว` });
+        }
+
+        // เช็คว่าคนไข้มีนัดหมายซ้อนกับหมอคนอื่นไหม
+        const [patientConflicts] = await pool.query(
+            `SELECT b.id, b.doctor_id, u_doctor.first_name AS doctor_first_name, u_doctor.last_name AS doctor_last_name, u_doctor.gender AS doctor_gender,
+                    b.start_time, b.end_time
+             FROM booking b
+             JOIN users u_doctor ON b.doctor_id = u_doctor.id
+             WHERE b.patient_id = ?
+               AND b.status <> 'cancelled'
+               AND b.start_time < ?
+               AND b.end_time > ?`,
+            [patient_id, end_time, start_time]
+        );
+        if (patientConflicts.length > 0) {
+            const conflictDoctor = patientConflicts[0];
+            const conflictDoctorName = formatDoctorName(conflictDoctor.doctor_gender, conflictDoctor.doctor_first_name, conflictDoctor.doctor_last_name);
+            return res.status(409).json({ 
+                success: false, 
+                error: `ผู้ป่วยมีนัดหมายซ้อนกับ ${conflictDoctorName} ในช่วงเวลานี้แล้ว` 
+            });
         }
 
         // เช็คว่าหมอมีตารางออกเยี่ยมบ้านใน home_visits ที่วันเวลาทับกันไหม
@@ -149,7 +190,7 @@ app.post('/api/bookings', async (req, res) => {
             [doctor_id, end_time, start_time]
         );
         if (visitConflicts.length > 0) {
-            return res.status(409).json({ success: false, error: 'แพทย์ติดตารางเยี่ยมบ้านในช่วงเวลานี้แล้ว' });
+            return res.status(409).json({ success: false, error: `${currentDoctorName} ติดตารางเยี่ยมบ้านในช่วงเวลานี้แล้ว` });
         }
 
         // เตรียมคิวรี่ว่าเราจะ insert ข้อมูลไปใน column พวกนี้
