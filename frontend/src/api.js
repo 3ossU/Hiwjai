@@ -96,6 +96,7 @@ export const SERVICES = {
   record: 'http://localhost:3003',
   activity: 'http://localhost:3004',
   admin: 'http://localhost:4001', // admin ใช้ช่วง 4xxx แยกจาก patient/auth (3xxx) และ nurse (5xxx)
+  cashier: 'http://localhost:4002',
 };
 
 export async function svc(service, path, { method = 'GET', body } = {}) {

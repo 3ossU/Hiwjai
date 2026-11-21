@@ -25,10 +25,7 @@
   margin-right: auto;
 }
 .pt-nav a {
-<<<<<<< HEAD
-=======
   position: relative;
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   color: #111;
   text-decoration: none;
   padding: 8px 16px;
@@ -45,8 +42,6 @@
   cursor: pointer;
   font-size: 13px;
 }
-<<<<<<< HEAD
-=======
 
 /* ---------- ชื่อ + รูปโปรไฟล์ บนแถบเมนู ---------- */
 .pt-user {
@@ -76,7 +71,6 @@
   }
 }
 
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 .pt-main {
   max-width: 1100px;
   margin: 0 auto;
@@ -147,8 +141,6 @@
 .pt-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-<<<<<<< HEAD
-=======
 }
 
 /* ---------- จุดแดงแจ้งจำนวน (ถ้าใช้) ---------- */
@@ -164,5 +156,4 @@
   color: #fff;
   font-size: 11px;
   font-weight: 700;
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 }

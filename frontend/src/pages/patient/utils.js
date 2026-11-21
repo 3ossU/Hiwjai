@@ -8,11 +8,6 @@ export const fmtDateTime = (v) => {
 
 export const fmtDate = (v) => {
   if (!v) return '-'
-<<<<<<< HEAD
-  const d = new Date(String(v).replace(' ', 'T'))
-  return isNaN(d) ? String(v) : d.toLocaleDateString('th-TH', { dateStyle: 'medium' })
-}
-=======
   const d = new Date(String(v).slice(0, 10) + 'T00:00:00')
   return isNaN(d) ? String(v) : d.toLocaleDateString('th-TH', { dateStyle: 'medium' })
 }
@@ -43,4 +38,3 @@ export const doctorName = (first, last, gender) => {
 
 export const avatarFallback = (seed) =>
   `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'hiwjai')}`
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726

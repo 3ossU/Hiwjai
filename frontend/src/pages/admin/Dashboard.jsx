@@ -51,7 +51,7 @@ const Dashboard = () => {
       </PageHeader>
 
       {/* hero */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-500 via-sky-400 to-cyan-300 text-white p-7 mb-6 shadow-lg shadow-sky-200">
+      <div className="relative overflow-hidden rounded-3xl hw-grad-hero text-white p-7 mb-6 shadow-lg shadow-sky-200">
         <div className="absolute right-10 -top-10 w-48 h-48 rounded-full bg-white/15"></div>
         <div className="absolute right-48 top-16 w-24 h-24 rounded-full bg-white/10"></div>
         <i className="bi bi-cloud-sun absolute right-8 bottom-2 text-8xl text-white/25"></i>
@@ -141,7 +141,7 @@ const Dashboard = () => {
                   <span className="text-sm font-bold text-slate-600">{n}</span>
                 </div>
                 <div className="h-2 rounded-full bg-sky-50">
-                  <div className="h-2 rounded-full bg-gradient-to-r from-sky-400 to-cyan-300" style={{ width: `${(n / users.total) * 100}%` }}></div>
+                  <div className="h-2 rounded-full hw-grad-soft" style={{ width: `${(n / users.total) * 100}%` }}></div>
                 </div>
               </div>
             ))}

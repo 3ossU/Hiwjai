@@ -4,3 +4,32 @@
   --color-ivory: #fffff0;
   --color-brand: #00c1e8;
 }
+
+/*
+  Gradient ของหน้า admin / cashier
+  ห้ามใช้ bg-gradient-to-* + from-/via-/to- ตรง ๆ เพราะ index.html โหลด Tailwind v3 (CDN) ซ้อนกับ v4 (Vite)
+  ตัวแปร --tw-gradient-* ของสองเวอร์ชันชนกัน ทำให้ gradient กลายเป็นโปร่งใส -> ตัวอักษรสีขาวบนพื้นขาว
+  class ด้านล่าง v3 ไม่รู้จัก และเขียนเป็น CSS ธรรมดา (ไม่อยู่ใน @layer) เพื่อให้ชนะ reset ของ v3
+  ที่สั่ง button { background-image: none } ซึ่งไม่อยู่ใน layer และชนะ utility ของ v4 ทุกตัว
+*/
+.hw-grad-primary {
+  /* ปุ่มหลัก / เมนูที่เลือกอยู่ */
+  background-image: linear-gradient(to right, var(--color-sky-500), var(--color-cyan-400));
+}
+.hw-grad-soft {
+  background-image: linear-gradient(to right, var(--color-sky-400), var(--color-cyan-300));
+}
+.hw-grad-soft-br {
+  /* โลโก้ / การ์ดตกแต่ง */
+  background-image: linear-gradient(to bottom right, var(--color-sky-400), var(--color-cyan-300));
+}
+.hw-grad-hero {
+  background-image: linear-gradient(to right, var(--color-sky-500), var(--color-sky-400), var(--color-cyan-300));
+}
+.hw-grad-tint-br {
+  background-image: linear-gradient(to bottom right, var(--color-sky-50), var(--color-cyan-50));
+}
+.hw-grad-page {
+  /* พื้นหลังทั้งหน้า */
+  background-image: linear-gradient(to bottom right, var(--color-sky-50), var(--color-white), var(--color-cyan-50));
+}

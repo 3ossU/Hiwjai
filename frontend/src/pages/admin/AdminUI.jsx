@@ -23,7 +23,7 @@ export const StatusBadge = ({ status }) =>
 export const PageHeader = ({ icon, title, subtitle, children }) => (
   <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
     <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-300 text-white flex items-center justify-center shadow-lg shadow-sky-200">
+      <div className="w-12 h-12 rounded-2xl hw-grad-soft-br text-white flex items-center justify-center shadow-lg shadow-sky-200">
         <i className={`bi ${icon} text-2xl`}></i>
       </div>
       <div>
@@ -45,7 +45,7 @@ export const Modal = ({ open, title, icon, onClose, children, footer }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-sky-900/20 backdrop-blur-sm" onClick={onClose}></div>
       <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl shadow-sky-200 overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-sky-400 to-cyan-300 text-white flex items-center justify-between">
+        <div className="px-6 py-4 hw-grad-soft text-white flex items-center justify-between">
           <h3 className="font-bold text-lg flex items-center gap-2"><i className={`bi ${icon}`}></i>{title}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-white/20 cursor-pointer"><i className="bi bi-x-lg"></i></button>
         </div>

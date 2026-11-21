@@ -127,10 +127,10 @@ const Counselors = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {list.map((c) => (
             <Card key={c.id} className={`overflow-hidden ${c.status === 'suspended' ? 'grayscale-[60%]' : ''}`}>
-              <div className="h-20 bg-gradient-to-r from-sky-400 to-cyan-300 relative">
+              <div className="h-20 hw-grad-soft relative">
                 <div className="absolute right-4 top-4"><StatusBadge status={c.status} /></div>
               </div>
-              <div className="px-6 pb-6 -mt-10">
+              <div className="relative px-6 pb-6 -mt-10">
                 <img src={avatarOf(c)} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md bg-sky-50" />
                 <h3 className="mt-3 font-bold text-lg">{fullName(c)}</h3>
                 <p className="text-xs text-slate-400">@{c.username} · เลขใบอนุญาต {c.license || '-'}</p>

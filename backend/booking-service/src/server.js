@@ -15,7 +15,7 @@ const pool = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'hiwjai',
-    port: process.env.DB_PORT || 3306
+    port: process.env.DB_PORT || 3307
 });
 
 
@@ -62,12 +62,34 @@ app.get('/api/bookings', async (req, res) => {
 
         // สาดไปสมาชิก สั่ง db ทำงานครับผม
         const [rows] = await pool.query(query, queryParams);
-        
+
+        // ดึงวันลาหมอ
+        let leaveQuery = `
+            SELECT l.id, l.user_id AS doctor_id, l.leave_type,
+                   l.start_date, l.end_date,
+                   u.first_name AS doctor_first_name, u.last_name AS doctor_last_name
+            FROM \`leave\` l
+            JOIN users u ON l.user_id = u.id
+            WHERE l.status = 'approved'
+              AND u.role = 'doctor'
+        `;
+        let leaveParams = [];
+
+        // ถ้าระบุ date มา ให้กรองเฉพาะวันลาที่ทับกับวันนั้น
+        if (date) {
+            leaveQuery += ` AND ? BETWEEN DATE(l.start_date) AND DATE(l.end_date)`;
+            leaveParams.push(date);
+        }
+
+        leaveQuery += ` ORDER BY l.start_date ASC`;
+
+        const [doctorLeaves] = await pool.query(leaveQuery, leaveParams);
 
         // ส่งกลับหน้าบ้านแบบ JSON
         res.json({ 
             success: true, 
-            data: rows 
+            data: rows,
+            doctor_leaves: doctorLeaves
         });
     } 
     catch (err) {

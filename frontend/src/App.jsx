@@ -28,10 +28,7 @@ import AdminDashboard from './pages/admin/Dashboard'
 import Accounts from './pages/admin/Accounts'
 import Counselors from './pages/admin/Counselors'
 import Security from './pages/admin/Security'
-<<<<<<< HEAD
-=======
 import AdminActivities from './pages/admin/Activities';
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
 
 // cashier
 import CashierLayout from './pages/cashier/CashierLayout'
@@ -146,10 +143,7 @@ function App() {
           <Route path="accounts" element={<Accounts />} />
           <Route path="counselors" element={<Counselors />} />
           <Route path="security" element={<Security />} />
-<<<<<<< HEAD
-=======
           <Route path="activities" element={<AdminActivities />} />
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
         </Route>
       </Route>
 

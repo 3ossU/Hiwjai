@@ -135,11 +135,8 @@ const Booking = ({ user }) => {
       const res = await axios.get(`http://localhost:5001/api/bookings?date=${date}`);
       if (res.data.success) {
         setBookings(Array.isArray(res.data.data) ? res.data.data : []);
-<<<<<<< HEAD
-=======
         // [เพิ่มใหม่] เก็บวันลาแพทย์ที่ API ส่งกลับมาด้วย
         setDoctorLeaves(Array.isArray(res.data.doctor_leaves) ? res.data.doctor_leaves : []);
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
       }
     } catch (error) {
       console.error("ดึงข้อมูลนัดหมายไม่สำเร็จ:", error);
@@ -242,8 +239,6 @@ const Booking = ({ user }) => {
     return doc.name.toLowerCase().includes(keyword);
   });
 
-<<<<<<< HEAD
-=======
   // [เพิ่มใหม่] ตรวจสอบว่าแพทย์คนนี้ลาวันที่ระบุหรือไม่
   // คืนค่า leave object ถ้าลา, คืน null ถ้าไม่ลา
   const getDoctorLeaveOnDate = (doctorId, dateStr) => {
@@ -256,7 +251,6 @@ const Booking = ({ user }) => {
     }) || null;
   };
 
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   // ฟังก์ชันจัดการเมื่อพิมพ์ในฟอร์ม และปรับเวลาสิ้นสุดอัตโนมัติหากไม่สัมพันธ์กับเวลาเริ่ม
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -327,8 +321,6 @@ const Booking = ({ user }) => {
       return;
     }
 
-<<<<<<< HEAD
-=======
     // [เพิ่มใหม่] ตรวจสอบซ้ำอีกชั้นว่าแพทย์ลาวันที่เลือกหรือไม่ (กันกรณี UI ถูก bypass)
     const doctorOnLeave = getDoctorLeaveOnDate(formData.doctor_id, selectedDate);
     if (doctorOnLeave) {
@@ -340,7 +332,6 @@ const Booking = ({ user }) => {
       return;
     }
 
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
     if (hasPatientTimeOverlap(formData.patient_id, formData.start_time, formData.end_time)) {
       showAlert(
         'warning',
@@ -697,41 +688,27 @@ const Booking = ({ user }) => {
                   ) : (
                     filteredDoctors.map((doc) => {
                       const isSelected = Number(formData.doctor_id) === Number(doc.id);
-<<<<<<< HEAD
-=======
                       // [เพิ่มใหม่] เช็คว่าแพทย์คนนี้ลาวันที่เลือกหรือไม่
                       const onLeave = getDoctorLeaveOnDate(doc.id, selectedDate);
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                       return (
                         <button
                           key={doc.id}
                           type="button"
-<<<<<<< HEAD
-                          onClick={() => setFormData(prev => ({ ...prev, doctor_id: String(doc.id) }))}
-                          className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
-                            isSelected
-=======
                           disabled={onLeave}
                           onClick={() => !onLeave && setFormData(prev => ({ ...prev, doctor_id: String(doc.id) }))}
                           className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
                             onLeave
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
                               : isSelected
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                               ? 'bg-[#00c0e8] text-white font-semibold shadow-sm'
                               : 'bg-white text-gray-700 hover:bg-[#00c0e8]/10 border border-gray-100'
                           }`}
                         >
-<<<<<<< HEAD
-                          <span className="text-sm truncate">{doc.name}</span>
-                          {isSelected && <i className="bi bi-check-lg text-sm shrink-0"></i>}
-=======
                           <span className="text-sm truncate">
                             {doc.name}
                             {onLeave && <span className="ml-2 text-[10px] text-red-500">(ลา)</span>}
                           </span>
                           {isSelected && !onLeave && <i className="bi bi-check-lg text-sm shrink-0"></i>}
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                         </button>
                       );
                     })
@@ -782,11 +759,7 @@ const Booking = ({ user }) => {
                 </div>
 
                 <p className="text-xs text-gray-400">
-<<<<<<< HEAD
-                  * พักกลางวัน 12:00 - 13:00 น. และปิดทำการหลัง 20:00 น. (ระบบจะปรับเวลาสิ้นสุดให้สัมพันธ์กับเวลาเริ่มอัตโนมัติ)
-=======
                   * พักกลางวัน 12:00 - 13:00 น. และปิดทำการหลัง 20:00 น.
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
                 </p>
               </div>
 

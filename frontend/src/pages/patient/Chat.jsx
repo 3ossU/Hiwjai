@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-export default function Chat({ user }) {
-  return (
-    <>
-      <h1 className="pt-title">แชท</h1>
-      <div className="pt-card pt-empty">
-        สวัสดี คุณ {user?.name || ''} ระบบแชทกำลังอยู่ระหว่างพัฒนา
-      </div>
-    </>
-=======
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
@@ -128,6 +118,5 @@ export default function Chat({ user }) {
         <br />แชทอาจตอบกลับในเวลาทำการเท่านั้น
       </p>
     </div>
->>>>>>> 1171ff0216804a24143f7a001b796244d7093726
   )
 }
