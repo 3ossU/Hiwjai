@@ -135,7 +135,7 @@ app.get('/api/leaves/history/all', async (req, res) => {
     try {
         // ดึงใบลาทั้งหมดที่มีสถานะเป็น approved กับ rejected
         const query = `
-            SELECT l.id, l.leave_type, l.start_date, l.end_date, l.reason, l.status, l.created_at,
+            SELECT l.id, l.user_id, l.leave_type, l.start_date, l.end_date, l.reason, l.status, l.created_at,
                    u.first_name, u.last_name, u.role, u.avatar_url
             FROM \`leave\` l
             JOIN users u ON l.user_id = u.id
@@ -162,7 +162,7 @@ app.get('/api/leaves/pending/all', async (req, res) => {
     try {
         // ดึงข้อมูลในใบลามา
         const query = `
-            SELECT l.id, l.leave_type, l.start_date, l.end_date, l.reason, l.status, l.created_at,
+            SELECT l.id, l.user_id, l.leave_type, l.start_date, l.end_date, l.reason, l.status, l.created_at,
                    u.first_name, u.last_name, u.role, u.avatar_url
             FROM \`leave\` l
             JOIN users u ON l.user_id = u.id
@@ -188,12 +188,33 @@ app.get('/api/leaves/pending/all', async (req, res) => {
 // approve or reject ใบลา
 app.patch('/api/leaves/:id/status', async (req, res) => {
     try {
-        const { id } = req.params; // รับค่า id ของพยาบาลคนที่ส่งใบลามา
-        const { status } = req.body; // รับค่า 'approved' หรือ 'rejected'
+        const { id } = req.params; // รับค่า id ของใบลา
+        const { status, approver_id } = req.body; // รับค่า 'approved' หรือ 'rejected' และ ID ของคนที่กดอนุมัติ
 
         // เช็คว่าค่าที่ส่งมามันถูกมั้ย ไม่ทะลึ่งส่งอย่างอื่นนอกจาก approved กับ rejected นะ
         if (!['approved', 'rejected'].includes(status)) {
             return res.status(400).json({ success: false, error: 'Invalid status' });
+        }
+
+        if (!approver_id) {
+            return res.status(400).json({ success: false, error: 'Missing approver_id' });
+        }
+
+        // ดึงมาว่าใบลานี่คือของใคร
+        const [leaveRows] = await pool.query(`SELECT user_id, status FROM \`leave\` WHERE id = ?`, [id]);
+        
+        if (leaveRows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Leave request not found' });
+        }
+
+        const leaveOwnerId = leaveRows[0].user_id;
+
+        // ไม่ให้หัวหน้าพยาบาล approve or reject ใบลาของตัวเองได้
+        if (Number(leaveOwnerId) === Number(approver_id)) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'คุณไม่สามารถอนุมัติหรือปฏิเสธใบลาของตัวเองได้' 
+            });
         }
 
         // อัพเดตสถานะใบลา
@@ -203,7 +224,6 @@ app.patch('/api/leaves/:id/status', async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, error: 'Leave request not found' });
         }
-
 
         res.json({ 
             success: true, 
