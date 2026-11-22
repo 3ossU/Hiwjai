@@ -1,138 +1,119 @@
 
 import React, { useEffect, useState } from "react";
 import "./DocAppointments.css";
-import { store } from "../../api";
+import { svc } from "../../api";
 
 function DocAppointments() {
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("all");
+    const [view, setView] = useState("upcoming");
+    const [now, setNow] = useState(() => new Date());
 
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // ดึงข้อมูลนัดหมายเฉพาะแพทย์ที่ Login
-    useEffect(() => {
-        const fetchAppointments = async () => {
-            try {
-                setLoading(true);
-                setError("");
+    // อ่านวันที่จาก API แบบ YYYY-MM-DD โดยไม่เลื่อนวันตาม timezone
+    const dateKey = (value) => {
+        if (!value) return "";
+        const text = String(value);
+        const iso = text.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (iso) return iso[1];
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "";
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
 
-                const response = await fetch(
-                    "http://localhost:3005/api/appointments",
-                    {
-                        headers: {
-                            Authorization: `Bearer ${store.token()}`
-                        }
-                    }
-                );
+    const todayKey = (d) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-                if (!response.ok) {
-                    throw new Error(
-                        "ไม่สามารถเชื่อมต่อ Appointment Service ได้"
-                    );
-                }
+    const isPast = (item) => {
+        const day = dateKey(item.rawDate);
+        if (!day) return false;
+        const today = todayKey(now);
+        if (day !== today) return day < today;
+        // เมื่อสิ้นสุดเวลานัดแล้ว ถือว่าเป็นรายการที่ผ่านมา
+        const end = String(item.endTime || "").slice(0, 5);
+        return Boolean(end) && end < `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    };
 
-                const result = await response.json();
-
-                if (!result.success) {
-                    throw new Error(
-                        result.message || "ไม่สามารถดึงข้อมูลนัดหมายได้"
-                    );
-                }
-
-                const formattedData = result.data.map((item) => ({
-                    id: item.booking_id,
-                    hn: item.hn || "-",
-
-                    name: [
-                        item.patient_first_name,
-                        item.patient_last_name
-                    ].filter(Boolean).join(" ") || "ไม่พบชื่อคนไข้",
-
-                    date: item.appointment_date
-                        ? new Date(item.appointment_date).toLocaleDateString("th-TH")
-                        : "-",
-
-                    rawDate: item.appointment_date,
-
-                    time: `${item.start_time || "-"} - ${item.end_time || "-"}`,
-
-                    doctor: [
-                        item.doctor_first_name,
-                        item.doctor_last_name
-                    ].filter(Boolean).join(" ") || "-",
-
-                    nurse: [
-                        item.nurse_first_name,
-                        item.nurse_last_name
-                    ].filter(Boolean).join(" ") || "-",
-
-                    note: item.note || "-",
-                    status: item.status
-                }));
-
-                setAppointments(formattedData);
-
-            } catch (err) {
-                console.error("Appointment Error:", err);
-                setError(err.message);
-
-            } finally {
-                setLoading(false);
+    const fetchAppointments = async () => {
+        try {
+            setLoading(true);
+            setError("");
+            // ขอทั้งหมดเพื่อให้ยอดสรุปและทั้งสามแท็บตรงกัน
+            // svc() ส่ง JWT และรองรับ refresh token เดิม
+            const result = await svc("appointment", "/api/appointments?view=all");
+            if (!result.success || !Array.isArray(result.data)) {
+                throw new Error(result.message || "ไม่สามารถดึงข้อมูลนัดหมายได้");
             }
-        };
+            const formattedData = result.data.map((item) => ({
+                id: item.booking_id,
+                hn: item.hn || "-",
+                name: [item.patient_first_name, item.patient_last_name]
+                    .filter(Boolean).join(" ") || "ไม่พบชื่อคนไข้",
+                date: dateKey(item.appointment_date)
+                    ? new Date(`${dateKey(item.appointment_date)}T12:00:00`).toLocaleDateString("th-TH")
+                    : "-",
+                rawDate: item.appointment_date,
+                startTime: item.start_time || "",
+                endTime: item.end_time || "",
+                time: `${item.start_time || "-"} - ${item.end_time || "-"}`,
+                doctor: [item.doctor_first_name, item.doctor_last_name]
+                    .filter(Boolean).join(" ") || "-",
+                nurse: [item.nurse_first_name, item.nurse_last_name]
+                    .filter(Boolean).join(" ") || "-",
+                note: item.note || "-",
+                status: item.status
+            }));
+            setAppointments(formattedData);
+            setNow(new Date());
+        } catch (err) {
+            console.error("Appointment Error:", err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchAppointments();
+        // อัปเดตการแบ่งรายการตามเวลาปัจจุบันทุกนาที
+        const timer = setInterval(() => setNow(new Date()), 60_000);
+        return () => clearInterval(timer);
     }, []);
 
-    // ค้นหา กรอง และเรียงนัดหมายจากวันที่ใกล้ที่สุดไปวันที่ไกลที่สุด
+    const isUpcoming = (item) =>
+        item.status === "scheduled" && Boolean(dateKey(item.rawDate)) && !isPast(item);
+
+    // ค้นหา กรองสถานะ เลือกแท็บ แล้วเรียงจากใกล้ไปไกล
     const filteredAppointments = appointments
         .filter((item) => {
-            const keyword = search.toLowerCase();
-
+            const keyword = search.trim().toLowerCase();
             const matchSearch =
                 item.name.toLowerCase().includes(keyword) ||
                 String(item.id).includes(keyword) ||
                 item.hn.toLowerCase().includes(keyword);
-
-            const matchStatus =
-                status === "all" || item.status === status;
-
-            return matchSearch && matchStatus;
+            const matchStatus = status === "all" || item.status === status;
+            const matchView = view === "all" ||
+                (view === "upcoming" && isUpcoming(item)) ||
+                (view === "past" && isPast(item));
+            return matchSearch && matchStatus && matchView;
         })
         .sort((a, b) => {
-            // ถ้าไม่มีวันที่ ให้แสดงท้ายรายการ
-            const dateA = a.rawDate ? new Date(a.rawDate).getTime() : Infinity;
-            const dateB = b.rawDate ? new Date(b.rawDate).getTime() : Infinity;
-
-            if (dateA !== dateB) return dateA - dateB;
-
-            // วันเดียวกัน เรียงตามเวลาเริ่มนัด (เช้าไปเย็น)
-            const timeA = a.time.split(" - ")[0];
-            const timeB = b.time.split(" - ")[0];
-            return timeA.localeCompare(timeB);
+            const aDate = dateKey(a.rawDate) || "9999-12-31";
+            const bDate = dateKey(b.rawDate) || "9999-12-31";
+            const dateDiff = aDate.localeCompare(bDate);
+            if (dateDiff) return view === "past" ? -dateDiff : dateDiff;
+            const timeDiff = String(a.startTime).localeCompare(String(b.startTime));
+            return view === "past" ? -timeDiff : timeDiff;
         });
 
-    // นับจำนวนรายการนัดหมาย
-    const today = new Date().toLocaleDateString("en-CA");
-
-    const todayCount = appointments.filter((item) => {
-        if (!item.rawDate) return false;
-
-        const date = new Date(item.rawDate)
-            .toLocaleDateString("en-CA");
-
-        return date === today;
-    }).length;
-
-    const scheduledCount = appointments.filter(
-        (item) => item.status === "scheduled"
+    const todayCount = appointments.filter((item) =>
+        dateKey(item.rawDate) === todayKey(now) && item.status !== "cancelled"
     ).length;
-
-    const cancelledCount = appointments.filter(
-        (item) => item.status === "cancelled"
-    ).length;
+    const upcomingCount = appointments.filter(isUpcoming).length;
+    const cancelledCount = appointments.filter((item) => item.status === "cancelled").length;
 
     // แปลงสถานะเป็นภาษาไทย
     const getStatusText = (value) => {
@@ -142,11 +123,20 @@ function DocAppointments() {
 
             case "cancelled":
                 return "ยกเลิก";
+            case "completed":
+                return "เสร็จสิ้น";
+            case "no_show":
+                return "ไม่มาตามนัด";
 
             default:
                 return value || "-";
         }
     };
+
+    const displayStatus = (item) =>
+        item.status === "scheduled" && isPast(item)
+            ? "ผ่านเวลานัดแล้ว"
+            : getStatusText(item.status);
 
     const getStatusClass = (value) => {
         switch (value) {
@@ -172,7 +162,7 @@ function DocAppointments() {
             `แพทย์: ${item.doctor}\n` +
             `ผู้บันทึก: ${item.nurse}\n` +
             `หมายเหตุ: ${item.note}\n` +
-            `สถานะ: ${getStatusText(item.status)}`
+            `สถานะ: ${displayStatus(item)}`
         );
     };
 
@@ -200,9 +190,9 @@ function DocAppointments() {
 
                 <div className="summary-card">
                     <strong className="summary-orange">
-                        {scheduledCount}
+                        {upcomingCount}
                     </strong>
-                    <span>นัดหมายแล้ว</span>
+                    <span>กำลังจะมาถึง</span>
                 </div>
 
                 <div className="summary-card">
@@ -219,6 +209,32 @@ function DocAppointments() {
                     <span>นัดหมายทั้งหมด</span>
                 </div>
 
+            </div>
+
+            {/* เลือกช่วงนัดหมาย */}
+            <div className="appointment-tabs" role="group" aria-label="เลือกช่วงนัดหมาย"
+                style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                {[
+                    ["upcoming", "กำลังจะมาถึง"],
+                    ["past", "ที่ผ่านมาแล้ว"],
+                    ["all", "ทั้งหมด"]
+                ].map(([key, label]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        aria-pressed={view === key}
+                        onClick={() => setView(key)}
+                        style={{
+                            border: "1px solid #cbd5e1",
+                            borderRadius: 8,
+                            padding: "9px 16px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            background: view === key ? "#00b9d5" : "#fff",
+                            color: view === key ? "#fff" : "#334155"
+                        }}
+                    >{label}</button>
+                ))}
             </div>
 
             {/* Search and Filter */}
@@ -246,6 +262,8 @@ function DocAppointments() {
                         <option value="all">ทั้งหมด</option>
                         <option value="scheduled">นัดหมายแล้ว</option>
                         <option value="cancelled">ยกเลิก</option>
+                        <option value="completed">เสร็จสิ้น</option>
+                        <option value="no_show">ไม่มาตามนัด</option>
                     </select>
                 </div>
 
@@ -253,7 +271,7 @@ function DocAppointments() {
                     <label>&nbsp;</label>
                     <button
                         className="add-booking-button"
-                        onClick={() => window.location.reload()}
+                        onClick={fetchAppointments}
                     >
                         รีเฟรชข้อมูล
                     </button>
@@ -336,7 +354,7 @@ function DocAppointments() {
                                             <span
                                                 className={`status-badge ${getStatusClass(item.status)}`}
                                             >
-                                                {getStatusText(item.status)}
+                                                {displayStatus(item)}
                                             </span>
                                         </td>
 
