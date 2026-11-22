@@ -107,6 +107,27 @@ function PatientHistory() {
         }
     };
 
+    // ข้อมูลการแพ้ส่งมาจาก patient-service ในผลการค้นหาผู้ป่วยอยู่แล้ว
+    const getAllergies = (patient) => {
+        if (!patient || patient.allergies == null) return null;
+        let value = patient.allergies;
+        if (typeof value === "string") {
+            try {
+                value = JSON.parse(value);
+            } catch {
+                return null;
+            }
+        }
+        if (!Array.isArray(value)) return null;
+        return value.map((item) => {
+            if (typeof item === "string") return item.trim();
+            if (item && typeof item === "object") {
+                return String(item.name || item.allergen || item.label || "").trim();
+            }
+            return "";
+        }).filter(Boolean);
+    };
+
     // แปลงวันที่
     const formatDate = (date) => {
         if (!date) return "-";
@@ -214,6 +235,36 @@ function PatientHistory() {
                             <p>HN: {selectedPatient.hn}</p>
                         </div>
                     </div>
+
+                    {/* ประวัติการแพ้: ครอบคลุมยา อาหาร และสิ่งแวดล้อม */}
+                    <section
+                        aria-label="ประวัติการแพ้"
+                        style={{
+                            border: "1px solid #f0d4d4",
+                            borderRadius: "12px",
+                            padding: "18px 20px",
+                            margin: "18px 0 24px",
+                            backgroundColor: "#fffafa"
+                        }}
+                    >
+                        <h3 style={{ margin: "0 0 12px", color: "#a72828" }}>
+                            <i className="bi bi-exclamation-triangle" aria-hidden="true" />{" "}
+                            ประวัติการแพ้
+                        </h3>
+                        {getAllergies(selectedPatient) === null ? (
+                            <p style={{ margin: 0 }}>ไม่สามารถยืนยันข้อมูลการแพ้ได้ กรุณาตรวจสอบประวัติผู้ป่วย</p>
+                        ) : getAllergies(selectedPatient).length === 0 ? (
+                            <p style={{ margin: 0 }}>ไม่มีรายการแพ้ที่บันทึกไว้</p>
+                        ) : (
+                            <ul style={{ margin: 0, paddingLeft: "22px" }}>
+                                {getAllergies(selectedPatient).map((name, index) => (
+                                    <li key={`${name}-${index}`} style={{ marginBottom: "5px", color: "#9e2626", fontWeight: 600 }}>
+                                        {name}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
 
                     {/* หัวข้อรายการประวัติ */}
                     <div className="records-heading">
