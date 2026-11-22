@@ -19,6 +19,8 @@ import DocAppointments from './pages/dr/DocAppointments'
 import PatientHistory from './pages/dr/PatientHistory'
 import ManageLeave from './pages/dr/ManageLeave'
 import Prescription from './pages/dr/Prescription'
+import DrHomeVisit from './pages/dr/HomeVisit'
+
 
 
 
@@ -184,6 +186,18 @@ function App() {
             path="prescription"
             element={<Prescription user={user} />}
           />
+
+          <Route
+            path="drHomevisit"
+            element={<Prescription user={user} />}
+          />
+
+          <Route
+            path="homevisit"
+            element={<DrHomeVisit user={user} />}
+          />
+
+
         </Route>
       </Route>
 

@@ -27,6 +27,11 @@ function DoctorLayout() {
             label: 'จัดการผู้ป่วยและการรักษา',
             title: 'จัดการผู้ป่วยและการรักษา'
         },
+        {
+            to: '/dr/HomeVisit',
+            label: 'ตารางเยี่ยมบ้าน',
+            title: 'จัดการผู้ป่วยและการรักษา'
+        },
     ]
 
     const currentTitle = menus.find(
