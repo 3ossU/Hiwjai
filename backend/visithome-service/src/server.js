@@ -18,7 +18,7 @@ const pool = mysql.createPool({
     port: process.env.DB_PORT || 3307
 });
 
-// กำหนดคำหน้าหมอ (เหมือนฝั่ง booking) ใช้ใน error message ให้อ่านง่าย
+// กำหนดคำหน้าหมอ ใช้ใน error message ให้อ่านง่าย
 const formatDoctorName = (gender, firstName, lastName) => {
     let title = '';
     if (gender === 'male') title = 'นพ.';
@@ -33,12 +33,17 @@ const ALLOWED_PATIENT_STATUSES = ['scheduled', 'visited', 'missed', 'cancelled']
 // ดึงรายการรอบเยี่ยมบ้านทั้งหมด พร้อมรายชื่อผู้ป่วย
 app.get('/api/home-visits', async (req, res) => {
     try {
-        // ดึงข้อมูลรอบเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
+        // ดึงข้อมูลรอบเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์และพยาบาล
         const [visits] = await pool.query(`
-            SELECT hv.id, hv.team_name, hv.lead_doctor_id, hv.visit_date, hv.start_time, hv.end_time, hv.status,
-                   u.first_name AS doctor_first_name, u.last_name AS doctor_last_name, u.gender AS doctor_gender
+            SELECT hv.id, hv.team_name, hv.lead_doctor_id, hv.nurse_id_1, hv.nurse_id_2,
+                   hv.visit_date, hv.start_time, hv.end_time, hv.status,
+                   u.first_name AS doctor_first_name, u.last_name AS doctor_last_name, u.gender AS doctor_gender,
+                   n1.first_name AS nurse1_first_name, n1.last_name AS nurse1_last_name, n1.gender AS nurse1_gender, n1.avatar_url AS nurse1_avatar,
+                   n2.first_name AS nurse2_first_name, n2.last_name AS nurse2_last_name, n2.gender AS nurse2_gender, n2.avatar_url AS nurse2_avatar
             FROM home_visits hv
-            LEFT JOIN users u ON hv.lead_doctor_id = u.id
+            LEFT JOIN users u  ON hv.lead_doctor_id = u.id
+            LEFT JOIN users n1 ON hv.nurse_id_1 = n1.id
+            LEFT JOIN users n2 ON hv.nurse_id_2 = n2.id
             ORDER BY hv.visit_date ASC, hv.start_time ASC, hv.id ASC
         `);
 
@@ -52,25 +57,68 @@ app.get('/api/home-visits', async (req, res) => {
         `);
 
         // ประกอบข้อมูลทั้ง 2 ส่วนเข้าด้วยกัน
-        const formatted = visits.map((v) => ({
-            ...v, // ข้อมูลนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
-            lead_doctor_name: `${v.doctor_first_name || ''} ${v.doctor_last_name || ''}`.trim(),
-            lead_doctor_display_name: formatDoctorName(v.doctor_gender, v.doctor_first_name, v.doctor_last_name), // เผื่อ frontend อยากได้แบบมีคำนำหน้า
-            lead_doctor_gender: v.doctor_gender,
-            patients: visitPatients
-                .filter((p) => p.home_visit_id === v.id)
-                .map((p) => ({
-                    patient_id: p.patient_id,
-                    patient_status: p.patient_status,
-                    hn: p.hn,
-                    patient_name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-                    avatar_url: p.avatar_url
-                }))
-        }));
+        const formatted = visits.map((v) => {
+            const nurses = [];
+            if (v.nurse_id_1) {
+                nurses.push({
+                    nurse_id: v.nurse_id_1,
+                    nurse_name: `${v.nurse1_first_name || ''} ${v.nurse1_last_name || ''}`.trim(),
+                    nurse_gender: v.nurse1_gender,
+                    avatar_url: v.nurse1_avatar
+                });
+            }
+            if (v.nurse_id_2) {
+                nurses.push({
+                    nurse_id: v.nurse_id_2,
+                    nurse_name: `${v.nurse2_first_name || ''} ${v.nurse2_last_name || ''}`.trim(),
+                    nurse_gender: v.nurse2_gender,
+                    avatar_url: v.nurse2_avatar
+                });
+            }
+
+            return {
+                ...v, // ข้อมูลนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์ + ชื่อพยาบาล
+                lead_doctor_name: `${v.doctor_first_name || ''} ${v.doctor_last_name || ''}`.trim(),
+                lead_doctor_display_name: formatDoctorName(v.doctor_gender, v.doctor_first_name, v.doctor_last_name), // เผื่อ frontend อยากได้แบบมีคำนำหน้า
+                lead_doctor_gender: v.doctor_gender,
+                nurses,
+                patients: visitPatients
+                    .filter((p) => p.home_visit_id === v.id)
+                    .map((p) => ({
+                        patient_id: p.patient_id,
+                        patient_status: p.patient_status,
+                        hn: p.hn,
+                        patient_name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+                        avatar_url: p.avatar_url
+                    }))
+            };
+        });
 
         res.json({ success: true, data: formatted });
     } catch (err) {
         console.error('Error fetching home visits:', err);
+        res.status(500).json({ success: false, error: 'Server Error' });
+    }
+});
+
+// ดึงรายชื่อพยาบาลไปสำหรับตอนสร้างนัดเยี่ยมบ้านใหม่
+app.get('/api/nurses', async (req, res) => {
+    try {
+        const query = `
+            SELECT id, first_name, last_name, gender, avatar_url
+            FROM users
+            WHERE role IN ('nurse', 'head_nurse')
+            ORDER BY first_name ASC
+        `;
+        const [rows] = await pool.query(query);
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    }
+    catch (err) {
+        console.error('Error fetching nurses:', err);
         res.status(500).json({ success: false, error: 'Server Error' });
     }
 });
@@ -81,12 +129,24 @@ app.post('/api/home-visits', async (req, res) => {
     // คล้าย pool.query แต่เพราะเราจะสร้างที effect กับตั้ง 2 table เลยต้องใช้
     const connection = await pool.getConnection();
     try {
-        const { team_name, lead_doctor_id, visit_date, start_time, end_time, patient_ids } = req.body;
+        const { team_name, lead_doctor_id, nurse_ids, visit_date, start_time, end_time, patient_ids } = req.body;
 
         // เช็คข้อมูลพื้นฐานที่ห้ามเป็น null ว่าได้รับมามั้ย ถ้าไม่มีก็ไม่ทำ
         if (!team_name || !lead_doctor_id || !visit_date || !start_time || !end_time || !Array.isArray(patient_ids) || patient_ids.length === 0) {
             return res.status(400).json({ success: false, error: 'Missing required fields' });
         }
+
+        // validate nurse_ids: ต้องเป็น array, มี 1-2 คน
+        if (!Array.isArray(nurse_ids) || nurse_ids.length === 0) {
+            return res.status(400).json({ success: false, error: 'ต้องเลือกพยาบาลในทีมอย่างน้อย 1 คน' });
+        }
+        if (nurse_ids.length > 2) {
+            return res.status(400).json({ success: false, error: 'เลือกพยาบาลในทีมได้ไม่เกิน 2 คน' });
+        }
+        // ลบ id พยาบาลที่ซ้ำออก + แปลงเป็น nurseId1, nurseId2
+        const uniqueNurseIds = Array.from(new Set(nurse_ids));
+        const nurseId1 = uniqueNurseIds[0] || null;
+        const nurseId2 = uniqueNurseIds[1] || null;
 
         // เช็คว่าเวลาเริ่มต้องน้อยกว่าเวลาจบ
         if (String(start_time) >= String(end_time)) {
@@ -207,11 +267,11 @@ app.post('/api/home-visits', async (req, res) => {
         // เริ่มทำ Transaction ซึ่งมันก็คือการที่ทุกคำสั่งที่เราคิวรี่ไป มันจะต้องถูกทั้งหมด db มันถึงจะทำงาน
         await connection.beginTransaction();
 
-        // ข้อมูลฝั่งนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์
+        // ข้อมูลฝั่งนัดเยี่ยมบ้าน + ชื่อหัวหน้าทีมแพทย์ + พยาบาล
         const [result] = await connection.query(
-            `INSERT INTO home_visits (team_name, lead_doctor_id, visit_date, start_time, end_time, status)
-             VALUES (?, ?, ?, ?, ?, 'planned')`,
-            [team_name.trim(), lead_doctor_id, visit_date, start_time, end_time]
+            `INSERT INTO home_visits (team_name, lead_doctor_id, nurse_id_1, nurse_id_2, visit_date, start_time, end_time, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'planned')`,
+            [team_name.trim(), lead_doctor_id, nurseId1, nurseId2, visit_date, start_time, end_time]
         );
 
         const visitId = result.insertId;
@@ -240,12 +300,12 @@ app.post('/api/home-visits', async (req, res) => {
     }
 });
 
-// แก้ไขรอบเยี่ยมบ้าน
+// แก้ไขรอบเยี่ยมบ้าน (เช่น เปลี่ยนแพทย์หัวหน้าทีม / แก้ชื่อทีม / แก้วันเวลา / รายชื่อผู้ป่วย / รายชื่อพยาบาล)
 app.put('/api/home-visits/:id', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         const { id } = req.params;
-        const { team_name, lead_doctor_id, visit_date, start_time, end_time, status, patient_ids } = req.body;
+        const { team_name, lead_doctor_id, nurse_ids, visit_date, start_time, end_time, status, patient_ids } = req.body;
 
         // เช็คว่ามีรอบเยี่ยมบ้านนี้อยู่จริงไหม
         const [existingRows] = await connection.query(`SELECT * FROM home_visits WHERE id = ?`, [id]);
@@ -254,13 +314,25 @@ app.put('/api/home-visits/:id', async (req, res) => {
         }
 
         const existing = existingRows[0];
-        // ใช้ ?? เพื่อให้ค่า 0 หรือ '' ที่ส่งมาถูกใช้จริง
+        // ใช้ ?? เพื่อให้ค่า 0 หรือ '' ที่ส่งมาถูกใช้จริง (เดิมใช้ || ทำให้ 0/'' ตกไปใช้ค่าเดิม)
         const nextTeamName = (team_name ?? existing.team_name).trim();
         const nextDoctorId = lead_doctor_id ?? existing.lead_doctor_id;
         const nextVisitDate = visit_date ?? existing.visit_date;
         const nextStartTime = start_time ?? existing.start_time;
         const nextEndTime = end_time ?? existing.end_time;
         const nextStatus = status ?? existing.status;
+
+        // คำนวณ nurse_id_1, nurse_id_2 (ถ้าส่ง nurse_ids มา)
+        let nextNurseId1 = existing.nurse_id_1;
+        let nextNurseId2 = existing.nurse_id_2;
+        if (Array.isArray(nurse_ids)) {
+            if (nurse_ids.length > 2) {
+                return res.status(400).json({ success: false, error: 'เลือกพยาบาลในทีมได้ไม่เกิน 2 คน' });
+            }
+            const uniqueNurseIds = Array.from(new Set(nurse_ids));
+            nextNurseId1 = uniqueNurseIds[0] || null;
+            nextNurseId2 = uniqueNurseIds[1] || null;
+        }
 
         // ถ้าไม่ได้ยกเลิก ให้เช็คเวลาทับซ้อนก่อน
         if (nextStatus !== 'cancelled') {
@@ -308,7 +380,7 @@ app.put('/api/home-visits/:id', async (req, res) => {
                 return res.status(409).json({ success: false, error: `${currentDoctorName} มีรอบเยี่ยมบ้านอื่นในช่วงเวลานี้แล้ว` });
             }
 
-            // เช็คว่าหมอมีนัดหมายในตาราง booking ที่เวลาทับกันไหม (เพิ่มกรอง appointment_date)
+            // เช็คว่าหมอมีนัดหมายในตาราง booking ที่เวลาทับกันไหม
             const [bookingConflicts] = await connection.query(
                 `SELECT id FROM booking
                  WHERE doctor_id = ?
@@ -391,9 +463,10 @@ app.put('/api/home-visits/:id', async (req, res) => {
         // อัปเดตข้อมูลหลักของรอบเยี่ยมบ้าน
         await connection.query(
             `UPDATE home_visits
-             SET team_name = ?, lead_doctor_id = ?, visit_date = ?, start_time = ?, end_time = ?, status = ?
+             SET team_name = ?, lead_doctor_id = ?, nurse_id_1 = ?, nurse_id_2 = ?,
+                 visit_date = ?, start_time = ?, end_time = ?, status = ?
              WHERE id = ?`,
-            [nextTeamName, nextDoctorId, nextVisitDate, nextStartTime, nextEndTime, nextStatus, id]
+            [nextTeamName, nextDoctorId, nextNurseId1, nextNurseId2, nextVisitDate, nextStartTime, nextEndTime, nextStatus, id]
         );
 
         // ถ้ามีการส่งรายชื่อผู้ป่วยใหม่มา ให้ล้างของเก่าแล้วใส่ใหม่
@@ -422,7 +495,7 @@ app.put('/api/home-visits/:id', async (req, res) => {
     }
 });
 
-// อัปเดตสถานะทั้งรอบเยี่ยมบ้านเป็นเสร็จสิ้น (completed) และอัปเดตผู้ป่วยที่ยังรอเยี่ยมให้เป็นเยี่ยมแล้ว (visited)
+// อัปเดตสถานะคนไข้ทั้งรอบว่าตรวจแล้วถ้ากดเสร็จสิ้นทั้งรอบ
 app.patch('/api/home-visits/:id/complete', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -498,7 +571,7 @@ app.patch('/api/home-visits/:visitId/patients/:patientId/status', async (req, re
     }
 });
 
-// ยกเลิกรอบเยี่ยมบ้าน (soft cancel — ใช้ PATCH ตาม semantic ที่ถูกต้อง)
+// ยกเลิกรอบเยี่ยมบ้าน (soft cancel)
 app.patch('/api/home-visits/:id/cancel', async (req, res) => {
     const connection = await pool.getConnection();
     try {
@@ -541,7 +614,7 @@ app.patch('/api/home-visits/:id/cancel', async (req, res) => {
     }
 });
 
-// คง DELETE ไว้เพื่อ backward compatibility
+// คง DELETE ไว้เพื่อ backward compatibility (เรียก logic เดียวกับ /cancel)
 app.delete('/api/home-visits/:id', async (req, res) => {
     // redirect ไปใช้ logic cancel เดียวกัน
     req.url = `/api/home-visits/${req.params.id}/cancel`;
