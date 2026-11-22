@@ -11,6 +11,7 @@ import Records from './pages/patient/Records'
 import PatientHomeVisit from './pages/patient/HomeVisit'
 import Activities from './pages/patient/Activities'
 import Chat from './pages/patient/Chat'
+import ForgotPassword from './pages/ForgotPassword'
 
 
 // Doctor
@@ -134,6 +135,7 @@ function App() {
       />
 
       <Route path="/login" element={<Login onLogin={handleLogin} />} />
+<Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* patient */}
       <Route element={<PatientRoute />}>

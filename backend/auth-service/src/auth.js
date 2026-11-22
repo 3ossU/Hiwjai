@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import db from './db.js';
 import { requireAuth, requireRole } from './middleware.js';
 import { checkPassword, clientIp, getSettings, isBlocked, lockedMinutesLeft, recordFailure, recordSuccess, logEvent } from './security.js';
+import { sendSms, isDevConsole } from './sms.js';
 
 const router = express.Router();
 
@@ -15,6 +16,10 @@ if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
 const ACCESS_TTL = '15m';
 const REFRESH_TTL = '7d';
 const RESET_TTL = '10m';
+
+const OTP_TTL_MINUTES = 5;      // OTP หมดอายุใน 5 นาที
+const OTP_COOLDOWN_SECONDS = 60; // ขอ OTP ซ้ำได้ทุก 60 วินาที
+const OTP_MAX_ATTEMPTS = 5;      // กรอกผิดได้ไม่เกิน 5 ครั้งต่อ OTP
 
 // กันเดารหัสผ่านคับ
 const DUMMY_HASH = bcrypt.hashSync('dummy-password', 10);
@@ -36,6 +41,35 @@ function tooMany(key, max = 5, windowMs = 15 * 60 * 1000) {
 }
 
 const digits = (s) => String(s || '').replace(/\D/g, '');
+
+// แปลงเบอร์ให้อยู่ในรูป 0XXXXXXXXX (รองรับ +66 / 66) คืน null ถ้าไม่ใช่เบอร์ไทยที่ถูกต้อง
+function normalizePhone(input) {
+  let d = digits(input);
+  if (d.startsWith('66') && d.length === 11) d = '0' + d.slice(2);
+  return /^0\d{8,9}$/.test(d) ? d : null;
+}
+
+// หาผู้ป่วยที่ใช้งานได้จากเบอร์โทร (เทียบแบบตัด - ช่องว่าง และ +66 ออก)
+async function findPatientsByPhone(phone) {
+  const [rows] = await db.query(
+    `SELECT * FROM users
+      WHERE role = 'patient'
+        AND status = 'active'
+        AND REPLACE(REPLACE(REPLACE(phone_number, '-', ''), ' ', ''), '+66', '0') = ?`,
+    [phone]
+  );
+  return rows;
+}
+
+// เก็บ OTP แบบ hash ไม่เก็บตัวเลขจริงในฐานข้อมูล
+const hashOtp = (userId, otp) =>
+  crypto.createHmac('sha256', process.env.JWT_REFRESH_SECRET).update(`${userId}:${otp}`).digest('hex');
+
+const safeEqualHex = (a, b) => {
+  const ba = Buffer.from(a, 'hex');
+  const bb = Buffer.from(b, 'hex');
+  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+};
 
 // สร้างข้อมูลที่ใส่ใน token และข้อมูล user ที่ส่งกลับ frontend
 async function buildSession(u) {
@@ -190,49 +224,147 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-// ลืมรหัสผ่าน ขั้นที่ 1: ยืนยันตัวตนด้วย Username + HN + เบอร์โทรที่ลงทะเบียนไว้กับโรงพยาบาล
-// ถ้าตรงทั้งหมดจะได้ resetToken อายุ 10 นาที (ไม่ต้อง login)
-router.post('/forgot-password', async (req, res) => {
-  const { username, hn, phone_number } = req.body || {};
-  if (!username || !hn || !phone_number) {
-    return res.status(400).json({ error: 'กรุณากรอก Username, HN และเบอร์โทรให้ครบ' });
+// ลืมรหัสผ่าน ขั้นที่ 1: ขอ OTP ด้วยเบอร์โทร (ใช้เบอร์โทรอย่างเดียว ไม่ต้องใช้ Username/HN)
+// ตอบข้อความเดียวกันทุกกรณี ไม่บอกว่าเบอร์นี้มีในระบบหรือไม่
+router.post('/otp/request', async (req, res) => {
+  const phone = normalizePhone(req.body?.phone_number);
+  if (!phone) {
+    return res.status(400).json({ error: 'กรุณากรอกเบอร์โทรให้ถูกต้อง เช่น 0812345678' });
   }
 
-  // จำกัดการเดาข้อมูล ต่อ IP + username
-  if (tooMany(`forgot:${req.ip}:${username}`)) {
+  const ip = clientIp(req);
+  if (tooMany(`otpreq-ip:${ip}`, 10) || tooMany(`otpreq-phone:${phone}`, 5)) {
+    return res.status(429).json({ error: 'ขอ OTP หลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่' });
+  }
+
+  const generic = {
+    ok: true,
+    message: 'ถ้าเบอร์นี้ลงทะเบียนไว้ในระบบ เราได้ส่งรหัส OTP ไปทาง SMS แล้ว',
+    resendAfter: OTP_COOLDOWN_SECONDS,
+  };
+
+  try {
+    if (await isBlocked(ip)) return res.json(generic);
+
+    const users = await findPatientsByPhone(phone);
+
+    // ไม่เจอ หรือมีหลายบัญชีใช้เบอร์เดียวกัน (ระบุตัวตนไม่ได้) -> ไม่ส่ง ให้ติดต่อเจ้าหน้าที่
+    if (users.length !== 1) {
+      await logEvent({
+        action: users.length === 0
+          ? 'ขอ OTP รีเซ็ตรหัสผ่าน: ไม่พบเบอร์ในระบบ'
+          : 'ขอ OTP รีเซ็ตรหัสผ่าน: เบอร์ซ้ำหลายบัญชี',
+        category: 'security', level: 'warning', ip,
+      });
+      return res.json(generic);
+    }
+    const u = users[0];
+
+    // กันกดขอซ้ำเร็วเกินไป
+    const [[recent]] = await db.query(
+      `SELECT COUNT(*) AS n FROM password_otps
+        WHERE user_id = ? AND created_at > NOW() - INTERVAL ? SECOND`,
+      [u.id, OTP_COOLDOWN_SECONDS]
+    );
+    if (recent.n > 0) return res.json(generic);
+
+    const otp = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+
+    // ยกเลิก OTP เก่าที่ยังไม่ได้ใช้ แล้วออกใหม่
+    await db.query(`UPDATE password_otps SET used = 1 WHERE user_id = ? AND used = 0`, [u.id]);
+    const [ins] = await db.query(
+      `INSERT INTO password_otps (user_id, otp_hash, expires_at)
+       VALUES (?, ?, NOW() + INTERVAL ? MINUTE)`,
+      [u.id, hashOtp(u.id, otp), OTP_TTL_MINUTES]
+    );
+
+    try {
+      await sendSms(
+        phone,
+        `รหัส OTP ของคุณคือ ${otp} (ใช้ได้ ${OTP_TTL_MINUTES} นาที) ห้ามบอกรหัสนี้กับผู้อื่น - Hiwjai`
+      );
+    } catch (smsErr) {
+      console.error('Send SMS Error:', smsErr.message);
+      await db.query(`UPDATE password_otps SET used = 1 WHERE id = ?`, [ins.insertId]);
+      await logEvent({ userId: u.id, actor: u.username, action: 'ส่ง SMS OTP ไม่สำเร็จ', category: 'system', level: 'danger', ip });
+      return res.json(generic);
+    }
+
+    await logEvent({ userId: u.id, actor: u.username, action: 'ขอ OTP รีเซ็ตรหัสผ่าน', category: 'security', ip });
+
+    // โหมดทดสอบเท่านั้น (SMS_PROVIDER=console และไม่ใช่ production)
+    res.json(isDevConsole() ? { ...generic, devOtp: otp } : generic);
+  } catch (error) {
+    console.error('OTP request Error:', error);
+    res.status(500).json({ error: 'เซิร์ฟเวอร์มีปัญหา' });
+  }
+});
+
+// ลืมรหัสผ่าน ตรวจ OTP ถ้าถูกจะได้ resetToken (อายุ 10 นาที)
+router.post('/otp/verify', async (req, res) => {
+  const phone = normalizePhone(req.body?.phone_number);
+  const otp = String(req.body?.otp || '').trim();
+  if (!phone || !/^\d{6}$/.test(otp)) {
+    return res.status(400).json({ error: 'กรุณากรอกเบอร์โทรและรหัส OTP 6 หลักให้ถูกต้อง' });
+  }
+
+  const ip = clientIp(req);
+  if (tooMany(`otpver-ip:${ip}`, 20) || tooMany(`otpver-phone:${phone}`, 10)) {
     return res.status(429).json({ error: 'ลองหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่' });
   }
 
-  try {
-    const [rows] = await db.query(
-      `SELECT u.* FROM users u
-         JOIN patient_info p ON p.user_id = u.id
-        WHERE u.username = ? AND p.hn = ? AND u.role = 'patient'`,
-      [username, hn]
-    );
-    const u = rows[0];
+  const invalid = () =>
+    res.status(400).json({ error: 'รหัส OTP ไม่ถูกต้องหรือหมดอายุ กรุณาขอรหัสใหม่' });
 
-    // ข้อความเดียวกันทุกกรณี ไม่บอกว่าผิดที่ช่องไหน กันคนเดา username
-    if (!u || digits(u.phone_number) !== digits(phone_number)) {
-      return res.status(400).json({ error: 'ข้อมูลไม่ตรงกับที่ลงทะเบียนไว้ กรุณาติดต่อเจ้าหน้าที่' });
+  try {
+    const users = await findPatientsByPhone(phone);
+    if (users.length !== 1) return invalid();
+    const u = users[0];
+
+    const [rows] = await db.query(
+      `SELECT id, otp_hash, attempts FROM password_otps
+        WHERE user_id = ? AND used = 0 AND expires_at > NOW()
+        ORDER BY id DESC LIMIT 1`,
+      [u.id]
+    );
+    const rec = rows[0];
+    if (!rec) return invalid();
+
+    if (rec.attempts >= OTP_MAX_ATTEMPTS) {
+      await db.query(`UPDATE password_otps SET used = 1 WHERE id = ?`, [rec.id]);
+      return invalid();
     }
+
+    if (!safeEqualHex(rec.otp_hash, hashOtp(u.id, otp))) {
+      await db.query(`UPDATE password_otps SET attempts = attempts + 1 WHERE id = ?`, [rec.id]);
+      await logEvent({ userId: u.id, actor: u.username, action: 'กรอก OTP รีเซ็ตรหัสผ่านผิด', category: 'security', level: 'warning', ip });
+      return invalid();
+    }
+
+    // ถูกต้อง ใช้ OTP นี้ได้ครั้งเดียว
+    await db.query(`UPDATE password_otps SET used = 1 WHERE id = ?`, [rec.id]);
+    await logEvent({ userId: u.id, actor: u.username, action: 'ยืนยัน OTP รีเซ็ตรหัสผ่านสำเร็จ', category: 'security', ip });
 
     const resetToken = jwt.sign({ id: u.id, type: 'reset' }, resetSecret(u), {
       expiresIn: RESET_TTL,
     });
     res.json({ resetToken });
   } catch (error) {
-    console.error('Forgot password Error:', error);
+    console.error('OTP verify Error:', error);
     res.status(500).json({ error: 'เซิร์ฟเวอร์มีปัญหา' });
   }
 });
 
-// ลืมรหัสผ่าน ขั้นที่ 2: ตั้งรหัสใหม่ด้วย resetToken
+// ลืมรหัสผ่าน ขั้นสุดท้าย: ตั้งรหัสใหม่ด้วย resetToken ที่ได้จากการยืนยัน OTP
 router.post('/reset-password', async (req, res) => {
   const { resetToken, newPassword } = req.body || {};
-  if (!resetToken || !newPassword || newPassword.length < 8) {
-    return res.status(400).json({ error: 'รหัสใหม่ต้องยาวอย่างน้อย 8 ตัวอักษร' });
+  if (!resetToken || !newPassword) {
+    return res.status(400).json({ error: 'ข้อมูลไม่ครบ' });
   }
+
+  // ใช้นโยบายรหัสผ่านเดียวกับ change-password (ความยาวขั้นต่ำ / ต้องมีสัญลักษณ์)
+  const pwErr = checkPassword(newPassword, await getSettings());
+  if (pwErr) return res.status(400).json({ error: pwErr });
 
   const invalid = () =>
     res.status(400).json({ error: 'ลิงก์รีเซ็ตหมดอายุหรือไม่ถูกต้อง กรุณาเริ่มใหม่' });
@@ -255,7 +387,12 @@ router.post('/reset-password', async (req, res) => {
     if (decoded.type !== 'reset') return invalid();
 
     const hash = await bcrypt.hash(newPassword, 10);
-    await db.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [hash, u.id]);
+    // ปลดล็อกบัญชีที่ถูกล็อกจากการใส่รหัสผิดด้วย (ถ้ามี)
+    await db.query(
+      `UPDATE users SET password_hash = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?`,
+      [hash, u.id]
+    );
+    await logEvent({ userId: u.id, actor: u.username, action: 'รีเซ็ตรหัสผ่านสำเร็จ', category: 'security', ip: clientIp(req) });
     res.json({ ok: true });
   } catch (error) {
     console.error('Reset password Error:', error);
