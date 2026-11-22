@@ -44,6 +44,9 @@ const parseBookingTimeHHmm = (val) => {
 const isCancelledStatus = (status) =>
   String(status || '').trim().toLowerCase() === 'cancelled';
 
+// ชื่อประเภทนัดที่ผู้ป่วยเลือกตอนจอง
+const APPT_TYPE_LABEL = { clinic: 'Clinic visit', online: 'Online', home: 'Home visit' };
+
 const Booking = ({ user }) => {
   // ส่วนจัดการ State
   const [bookings, setBookings] = useState([]); // เก็บรายการนัดหมาย
@@ -54,7 +57,7 @@ const Booking = ({ user }) => {
   const [selectedDate, setSelectedDate] = useState(getLocalDateString); // วันที่ที่กำลังดูอยู่ (Default = วันนี้)
   const [isLoading, setIsLoading] = useState(true); // สถานะการโหลดข้อมูล
 
-  // [เพิ่มใหม่] เก็บข้อมูลวันลาของแพทย์ (approved) ที่ได้มาจาก API /api/bookings
+  // เก็บข้อมูลวันลาของแพทย์ (approved) ที่ได้มาจาก API /api/bookings
   const [doctorLeaves, setDoctorLeaves] = useState([]);
 
   // State สำหรับ Modal จองคิว
@@ -135,7 +138,7 @@ const Booking = ({ user }) => {
       const res = await axios.get(`http://localhost:5001/api/bookings?date=${date}`);
       if (res.data.success) {
         setBookings(Array.isArray(res.data.data) ? res.data.data : []);
-        // [เพิ่มใหม่] เก็บวันลาแพทย์ที่ API ส่งกลับมาด้วย
+        // เก็บวันลาแพทย์ที่ API ส่งกลับมาด้วย
         setDoctorLeaves(Array.isArray(res.data.doctor_leaves) ? res.data.doctor_leaves : []);
       }
     } catch (error) {
@@ -239,7 +242,7 @@ const Booking = ({ user }) => {
     return doc.name.toLowerCase().includes(keyword);
   });
 
-  // [เพิ่มใหม่] ตรวจสอบว่าแพทย์คนนี้ลาวันที่ระบุหรือไม่
+  // ตรวจสอบว่าแพทย์คนนี้ลาวันที่ระบุหรือไม่
   // คืนค่า leave object ถ้าลา, คืน null ถ้าไม่ลา
   const getDoctorLeaveOnDate = (doctorId, dateStr) => {
     if (!dateStr) return null;
@@ -321,7 +324,7 @@ const Booking = ({ user }) => {
       return;
     }
 
-    // [เพิ่มใหม่] ตรวจสอบซ้ำอีกชั้นว่าแพทย์ลาวันที่เลือกหรือไม่ (กันกรณี UI ถูก bypass)
+    // ตรวจสอบซ้ำอีกชั้นว่าแพทย์ลาวันที่เลือกหรือไม่ (กันกรณี UI ถูก bypass)
     const doctorOnLeave = getDoctorLeaveOnDate(formData.doctor_id, selectedDate);
     if (doctorOnLeave) {
       showAlert(
@@ -494,25 +497,16 @@ const Booking = ({ user }) => {
               <thead className="sticky top-0 bg-white z-10 shadow-sm">
                 <tr>
                   <th className="p-4 border-b border-r border-gray-100 w-24 text-center text-gray-500 font-bold text-sm">เวลา</th>
-                  {doctors.map(doc => {
-                    // [เพิ่มใหม่] เช็คว่าแพทย์คนนี้ลาวันที่เลือกหรือไม่
-                    const onLeave = getDoctorLeaveOnDate(doc.id, selectedDate);
-                    return (
-                      <th key={doc.id} className="p-4 border-b border-gray-100 text-center font-bold text-black min-w-45">
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center justify-center gap-2">
-                            <i className="bi bi-person-badge text-[#00c0e8]"></i>
-                            {doc.name}
-                          </div>
-                          {/* {onLeave && (
-                            <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-semibold">
-                              <i className="bi bi-calendar-x mr-1"></i>ลา
-                            </span>
-                          )} */}
+                  {doctors.map(doc => (
+                    <th key={doc.id} className="p-4 border-b border-gray-100 text-center font-bold text-black min-w-45">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center justify-center gap-2">
+                          <i className="bi bi-person-badge text-[#00c0e8]"></i>
+                          {doc.name}
                         </div>
-                      </th>
-                    );
-                  })}
+                      </div>
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
@@ -528,18 +522,33 @@ const Booking = ({ user }) => {
                     {/* คอลัมน์แพทย์แต่ละท่าน */}
                     {doctors.map(doc => {
                       const booking = getBookingForSlot(time, doc.id);
-                      // [เพิ่มใหม่] เช็คว่าแพทย์ลาช่วงนี้หรือไม่
+                      // เช็คว่าแพทย์ลาช่วงนี้หรือไม่
                       const onLeave = getDoctorLeaveOnDate(doc.id, selectedDate);
 
                       return (
-                        <td key={`${time}-${doc.id}`} className="p-2 border-b border-gray-100 h-20 align-top">
+                        <td key={`${time}-${doc.id}`} className="p-2 border-b border-gray-100 h-24 align-top">
                           {booking ? (
-                            <div className={`p-2.5 rounded-lg border h-full flex flex-col justify-between ${doc.color} shadow-sm relative group`}>
-                              <div>
-                                <p className="font-bold text-xs truncate" title={`${booking.patient_first_name} ${booking.patient_last_name}`}>
+                            <div
+                              className={`p-2 rounded-lg border h-full flex flex-col justify-between ${doc.color} shadow-sm relative group`}
+                              title={[
+                                `${booking.patient_first_name} ${booking.patient_last_name} (HN: ${booking.hn})`,
+                                `ประเภท: ${APPT_TYPE_LABEL[booking.appointment_type] || 'Clinic visit'}`,
+                                booking.booked_by_patient ? 'จองโดย: ผู้ป่วยจองเอง' : 'จองโดย: พยาบาล',
+                                booking.addon_note ? `เรื่องที่ปรึกษา: ${booking.addon_note}` : '',
+                              ].filter(Boolean).join('\n')}
+                            >
+                              <div className="min-w-0">
+                                <p className="font-bold text-xs truncate">
                                   {booking.patient_first_name} {booking.patient_last_name}
                                 </p>
                                 <p className="text-[10px] opacity-80 mt-0.5 truncate">HN: {booking.hn}</p>
+                                <p className="text-[10px] opacity-90 mt-0.5 truncate">
+                                  {APPT_TYPE_LABEL[booking.appointment_type] || 'Clinic visit'}
+                                  {booking.booked_by_patient ? ' · ผู้ป่วยจองเอง' : ''}
+                                </p>
+                                {booking.addon_note && (
+                                  <p className="text-[10px] opacity-80 truncate italic">“{booking.addon_note}”</p>
+                                )}
                               </div>
 
                               <div className="flex justify-between items-end mt-1">
@@ -560,7 +569,7 @@ const Booking = ({ user }) => {
                               </div>
                             </div>
                           ) : onLeave ? (
-                            // [เพิ่มใหม่] แพทย์ลาวันนี้ — แสดงแถบเทา ไม่ให้กด
+                            // แพทย์ลาวันนี้ แสดงแถบเทา ไม่ให้กด
                             <div className="h-full rounded-lg bg-gray-100/60 border border-dashed border-gray-200 flex items-center justify-center">
                               <span className="text-[10px] text-gray-400 font-medium">
                                 <i className="bi bi-x-circle mr-1"></i>แพทย์ลา
@@ -688,13 +697,13 @@ const Booking = ({ user }) => {
                   ) : (
                     filteredDoctors.map((doc) => {
                       const isSelected = Number(formData.doctor_id) === Number(doc.id);
-                      // [เพิ่มใหม่] เช็คว่าแพทย์คนนี้ลาวันที่เลือกหรือไม่
+                      // เช็คว่าแพทย์คนนี้ลาวันที่เลือกหรือไม่
                       const onLeave = getDoctorLeaveOnDate(doc.id, selectedDate);
                       return (
                         <button
                           key={doc.id}
                           type="button"
-                          disabled={onLeave}
+                          disabled={!!onLeave}
                           onClick={() => !onLeave && setFormData(prev => ({ ...prev, doctor_id: String(doc.id) }))}
                           className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
                             onLeave

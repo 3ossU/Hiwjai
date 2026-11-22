@@ -1,7 +1,8 @@
-
 import React, { useEffect, useState } from "react";
 import "./DocAppointments.css";
 import { svc } from "../../api";
+
+const typeName = { clinic: "Clinic visit", online: "Online", home: "Home visit" };
 
 function DocAppointments() {
     const [search, setSearch] = useState("");
@@ -61,9 +62,12 @@ function DocAppointments() {
                 time: `${item.start_time || "-"} - ${item.end_time || "-"}`,
                 doctor: [item.doctor_first_name, item.doctor_last_name]
                     .filter(Boolean).join(" ") || "-",
-                nurse: [item.nurse_first_name, item.nurse_last_name]
-                    .filter(Boolean).join(" ") || "-",
-                note: item.note || "-",
+                nurse: item.booked_by_patient
+                    ? "ผู้ป่วยจองเอง"
+                    : ([item.nurse_first_name, item.nurse_last_name].filter(Boolean).join(" ") || "-"),
+                note: item.addon_note || item.note || "-",
+                appointmentType: typeName[item.appointment_type] || "Clinic visit",
+                bookedByPatient: Boolean(item.booked_by_patient),
                 status: item.status
             }));
             setAppointments(formattedData);
@@ -120,14 +124,12 @@ function DocAppointments() {
         switch (value) {
             case "scheduled":
                 return "นัดหมายแล้ว";
-
             case "cancelled":
                 return "ยกเลิก";
             case "completed":
                 return "เสร็จสิ้น";
             case "no_show":
                 return "ไม่มาตามนัด";
-
             default:
                 return value || "-";
         }
@@ -142,10 +144,8 @@ function DocAppointments() {
         switch (value) {
             case "scheduled":
                 return "confirmed";
-
             case "cancelled":
                 return "cancelled";
-
             default:
                 return "";
         }
@@ -159,9 +159,10 @@ function DocAppointments() {
             `ชื่อคนไข้: ${item.name}\n` +
             `วันที่: ${item.date}\n` +
             `เวลา: ${item.time}\n` +
+            `ประเภทนัด: ${item.appointmentType}\n` +
             `แพทย์: ${item.doctor}\n` +
             `ผู้บันทึก: ${item.nurse}\n` +
-            `หมายเหตุ: ${item.note}\n` +
+            `เรื่องที่ปรึกษา/หมายเหตุ: ${item.note}\n` +
             `สถานะ: ${displayStatus(item)}`
         );
     };
@@ -172,10 +173,6 @@ function DocAppointments() {
             {/* Page Heading */}
             <div className="page-heading">
                 <h1>ตารางนัดหมาย</h1>
-                {/* <p>
-                    ตรวจสอบนัดหมายที่คนไข้จองเข้ามา
-                    และติดตามสถานะการเข้ารับบริการ
-                </p> */}
             </div>
 
             {/* Summary */}
@@ -237,7 +234,6 @@ function DocAppointments() {
                 ))}
             </div>
 
-            {/* Search and Filter */}
             {/* Search and Filter */}
             <div className="filter-panel">
 
@@ -339,6 +335,12 @@ function DocAppointments() {
                                         <td>
                                             <strong>{item.name}</strong>
                                             <small>HN: {item.hn}</small>
+                                            <small>{item.appointmentType}</small>
+                                            {item.note !== "-" && (
+                                                <small style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                    เรื่อง: {item.note}
+                                                </small>
+                                            )}
                                         </td>
 
                                         <td>
