@@ -27,7 +27,7 @@ async function getPatientInfoId(userId) {
 // หมอลาแบบอนุมัติแล้วในวันนั้นหรือไม่ อ่านตาราง leave ของเพื่อน
 async function doctorOnLeave(db, doctorId, date) {
   const [rows] = await db.query(
-    'SELECT 1 FROM `leave` WHERE nurse_id = ? AND status = ? AND ? BETWEEN start_date AND end_date LIMIT 1',
+    'SELECT 1 FROM `leave` WHERE user_id = ? AND status = ? AND ? BETWEEN start_date AND end_date LIMIT 1',
     [doctorId, 'approved', date]
   );
   return rows.length > 0;
@@ -219,6 +219,36 @@ app.patch('/api/patient-bookings/:id/cancel', auth, role(cfg.ROLES.patient), asy
     res.json({ success: true, message: 'ยกเลิกนัดแล้ว' });
   } catch (e) {
     console.error(e);
+    res.status(500).json({ success: false, error: 'Server Error' });
+  }
+});
+
+// รอบเยี่ยมบ้านของผู้ป่วยคนที่ login อยู่ (อ่านจาก home_visit_patients + home_visits)
+// ส่งเฉพาะข้อมูลของผู้ป่วยคนนี้ ไม่ส่งรายชื่อผู้ป่วยคนอื่นในรอบเดียวกัน
+app.get('/api/patient-home-visits/my', auth, role(cfg.ROLES.patient), async (req, res) => {
+  try {
+    const patientInfoId = await getPatientInfoId(req.user.id);
+    if (!patientInfoId) return res.json({ success: true, data: [] });
+
+    const [rows] = await pool.query(
+      `SELECT hv.id, hv.team_name, hv.visit_date,
+              DATE_FORMAT(hv.start_time, '%H:%i') AS start_time,
+              DATE_FORMAT(hv.end_time, '%H:%i') AS end_time,
+              hv.status AS visit_status,
+              hvp.status AS patient_status,
+              d.first_name AS doctor_first_name,
+              d.last_name AS doctor_last_name,
+              d.gender AS doctor_gender
+         FROM home_visit_patients hvp
+         JOIN home_visits hv ON hv.id = hvp.home_visit_id
+         LEFT JOIN users d ON d.id = hv.lead_doctor_id
+        WHERE hvp.patient_id = ?
+        ORDER BY hv.visit_date DESC, hv.start_time DESC`,
+      [patientInfoId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (e) {
+    console.error('Error fetching patient home visits:', e);
     res.status(500).json({ success: false, error: 'Server Error' });
   }
 });
