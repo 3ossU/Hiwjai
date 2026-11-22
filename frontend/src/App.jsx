@@ -12,6 +12,16 @@ import PatientHomeVisit from './pages/patient/HomeVisit'
 import Activities from './pages/patient/Activities'
 import Chat from './pages/patient/Chat'
 
+
+// Doctor
+import DoctorLayout from './DoctorLayout'
+import DocAppointments from './pages/dr/DocAppointments'
+import PatientHistory from './pages/dr/PatientHistory'
+import ManageLeave from './pages/dr/ManageLeave'
+import Prescription from './pages/dr/Prescription'
+
+
+
 // nurse
 import Layout from './pages/nurse/Layout'
 import Dashboard from './pages/nurse/Dashboard'
@@ -37,15 +47,17 @@ import CashierPayment from './pages/cashier/Payment'
 import CashierFinance from './pages/cashier/Finance'
 
 const isNurse = (u) => u?.role === 'nurse' || u?.role === 'head_nurse'
+const isDoctor = (u) => u?.role === 'doctor'
 const isAdmin = (u) => u?.role === 'admin'
 const isCashier = (u) => u?.role === 'cashier'
 
 // หน้าแรกของแต่ละ role
 const homeOf = (u) =>
   isAdmin(u) ? '/admin/dashboard'
-  : isNurse(u) ? '/nurse/dashboard'
-  : isCashier(u) ? '/cashier/billing'
-  : '/patient/home'
+    : isNurse(u) ? '/nurse/dashboard'
+      : isCashier(u) ? '/cashier/billing'
+        : isDoctor(u) ? '/dr/appointments'
+          : '/patient/home'
 
 const CashierRoute = () => {
   const user = store.user()
@@ -74,12 +86,25 @@ const NurseRoute = () => {
   return <Outlet />
 }
 
+const DoctorRoute = () => {
+  const user = store.user()
+
+  if (!user) return <Navigate to="/login" replace />
+
+  if (!isDoctor(user)) {
+    return <Navigate to={homeOf(user)} replace />
+  }
+
+  return <Outlet />
+}
+
 const PatientRoute = () => {
   const user = store.user()
 
   if (!user) return <Navigate to="/login" replace />
+
   if (user.role !== 'patient') {
-    return <Navigate to={isNurse(user) || isAdmin(user) || isCashier(user) ? homeOf(user) : '/login'} replace />
+    return <Navigate to={homeOf(user)} replace />
   }
 
   return <Outlet />
@@ -134,6 +159,35 @@ function App() {
           <Route path="approveleave" element={<ApproveLeave user={user} />} />
         </Route>
       </Route>
+
+
+      {/* Doctor */}
+      <Route element={<DoctorRoute />}>
+        <Route path="/dr" element={<DoctorLayout />}>
+          <Route
+            index
+            element={<Navigate to="appointments" replace />}
+          />
+          <Route
+            path="appointments"
+            element={<DocAppointments user={user} />}
+          />
+          <Route
+            path="patient-history"
+            element={<PatientHistory user={user} />}
+          />
+          <Route
+            path="manage-leave"
+            element={<ManageLeave user={user} />}
+          />
+          <Route
+            path="prescription"
+            element={<Prescription user={user} />}
+          />
+        </Route>
+      </Route>
+
+
 
       {/* admin */}
       <Route element={<AdminRoute />}>
