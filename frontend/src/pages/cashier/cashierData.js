@@ -55,9 +55,13 @@ export const CARD_BRANDS = ['VISA', 'Mastercard', 'JCB', 'UnionPay', 'AMEX'];
 export const methodDetailText = (tx) => {
   const d = tx.detail;
   if (!d) return '';
-  if (tx.method === PROMPTPAY) return `Ref: ${d.ref}`;
-  if (tx.method === CARD) return `${d.brand} •••• ${d.last4} · Approval ${d.approval}`;
-  return '';
+  const parts = [];
+  if (d.coverage) {
+    parts.push(`สิทธิ์${d.coverage.type} (${d.coverage.refNo}) -${fmt2(d.coverage.coveredAmount)} ฿`);
+  }
+  if (tx.method === PROMPTPAY && d.ref) parts.push(`Ref: ${d.ref}`);
+  if (tx.method === CARD && d.last4) parts.push(`${d.brand} •••• ${d.last4} · Approval ${d.approval}`);
+  return parts.join(' · ');
 };
 
 /* ---------- format ---------- */

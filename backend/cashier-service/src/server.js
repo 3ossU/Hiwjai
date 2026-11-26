@@ -90,7 +90,7 @@ app.get('/api/cashier/pending-bills', async (_req, res) => {
 });
 
 app.post('/api/cashier/payments', async (req, res) => {
-  const { invoiceId, method, received, detail = null } = req.body;
+  const { invoiceId, method, received, coveredAmount = 0, detail = null } = req.body;
   const cashierId = req.user.id || req.user.userId || req.user.sub;
 
   if (!invoiceId || !method || received === undefined) {
@@ -130,10 +130,19 @@ app.post('/api/cashier/payments', async (req, res) => {
       [invoiceId]
     );
     const totalAmount = Math.round(itemRows.reduce((s, i) => s + Number(i.qty) * Number(i.price), 0) * 100) / 100;
-    const receivedNum = Number(received);
-    const changeAmount = Math.round((receivedNum - totalAmount) * 100) / 100;
+    const coveredNum = Math.round(Math.max(0, Number(coveredAmount)) * 100) / 100;
 
-    if (changeAmount < 0) {
+    if (coveredNum > totalAmount) {
+      await conn.rollback();
+      return res.status(400).json({ message: 'ยอดใช้สิทธิ์ต้องไม่เกินยอดค่ารักษารวม' });
+    }
+
+    // ยอดสุทธิที่เก็บเงินจริงหลังหักสิทธิ์บัตรทอง/ประกัน/เบิกได้
+    const netAmount = Math.round(Math.max(0, totalAmount - coveredNum) * 100) / 100;
+    const receivedNum = Number(received);
+    const changeAmount = Math.round((receivedNum - netAmount) * 100) / 100;
+
+    if (netAmount > 0 && changeAmount < 0) {
       await conn.rollback();
       return res.status(400).json({ message: 'จำนวนเงินที่รับมาไม่เพียงพอ' });
     }
@@ -146,7 +155,7 @@ app.post('/api/cashier/payments', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         receiptNo, invoiceId, invoice.patient_id, cashierId, method,
-        totalAmount, receivedNum, method === 'เงินสด' ? changeAmount : 0,
+        netAmount, receivedNum, method === 'เงินสด' ? changeAmount : 0,
         detail ? JSON.stringify(detail) : null,
       ]
     );
@@ -158,7 +167,7 @@ app.post('/api/cashier/payments', async (req, res) => {
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     res.status(201).json({
-      message: 'ชำระเงินและออกใบเสร็จเรียบร้อย',
+      message: 'บันทึกและออกใบเสร็จเรียบร้อย',
       transaction: {
         receiptNo,
         time: timeStr,
@@ -166,7 +175,7 @@ app.post('/api/cashier/payments', async (req, res) => {
         hn: invoice.hn,
         method,
         detail,
-        amount: totalAmount,
+        amount: netAmount,
         received: receivedNum,
         change: method === 'เงินสด' ? changeAmount : 0,
         sent: false,
